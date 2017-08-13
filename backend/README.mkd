@@ -1,0 +1,19 @@
+## bqserver - backend server for quickstep
+
+Server responsible for rest/database/internal logic interaction
+
+### Install
+
+#### Go
+``` bash
+    wget https://storage.googleapis.com/golang/go1.8.3.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.8.3.linux-amd64.tar.gz go/
+    export PATH=$PATH:/usr/local/go/bin
+    echo "export GOROOT=$HOME/workspace/go" >> ~/.bashrc
+    echo "export PATH=$PATH:$GOROOT/bin" >> ~/.bashrc
+```
+
+#### Source
+
+rest - rest server
+store - database abstraction
