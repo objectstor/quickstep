@@ -59,7 +59,6 @@ func (t *tokenAuth) authenticate(r *http.Request) bool {
 			}
 		}
 	}
-	// TODO destroy token from db
 	return false
 }
 
