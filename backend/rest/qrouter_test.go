@@ -15,7 +15,8 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type JsonToken struct {
+/* JsonToken - temp struct keeping json token */
+type JSONToken struct {
 	Token string `json:"token"`
 }
 
@@ -28,11 +29,13 @@ func TestNullSession(t *testing.T) {
 	server := httptest.NewServer(router.Mux)
 	//server.Start()
 	defer server.Close()
-	loginUrl := fmt.Sprintf("%s/login", server.URL)
-	res, err := http.Get(loginUrl)
+	loginURL := fmt.Sprintf("%s/login", server.URL)
+	res, err := http.Get(loginURL)
+	assert.Nil(t, err)
 	assert.Equal(t, 404, res.StatusCode)
 	var jsonStr = []byte(`{"title":"Bummer"}`)
-	req, err := http.NewRequest("POST", loginUrl, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	assert.Nil(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	client := &http.Client{}
 	resp, err := client.Do(req)
@@ -44,13 +47,13 @@ func TestNullSession(t *testing.T) {
 }
 
 func TestRouterLogin(t *testing.T) {
-	var myToken JsonToken
+	var myToken JSONToken
 	// test login cases
-	super := new(User)
+	super := new(UserAuth)
 	db := new(qdb.Qdb)
 	db.Type = "mongodb"
 	db.Timeout = time.Second * 10
-	db.Url = "localhost"
+	db.URL = "localhost"
 	session, err := db.Open()
 	assert.Nil(t, err)
 	router, err := New("localhost:9090", session)
@@ -60,11 +63,13 @@ func TestRouterLogin(t *testing.T) {
 	server := httptest.NewServer(router.Mux)
 	//server.Start()
 	defer server.Close()
-	loginUrl := fmt.Sprintf("%s/login", server.URL)
-	res, err := http.Get(loginUrl)
+	loginURL := fmt.Sprintf("%s/login", server.URL)
+	res, err := http.Get(loginURL)
+	assert.Nil(t, err)
 	assert.Equal(t, 404, res.StatusCode)
 	var jsonStr = []byte(`{"title":"Buy cheese and bread for breakfast."}`)
-	req, err := http.NewRequest("POST", loginUrl, bytes.NewBuffer(jsonStr))
+	req, err := http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	assert.Nil(t, err)
 	//req.Header.Set("X-Custom-Header", "myvalue")
 	req.Header.Set("Content-Type", "application/json")
 
@@ -77,7 +82,8 @@ func TestRouterLogin(t *testing.T) {
 	super.Name = "super"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
-	req, err = http.NewRequest("POST", loginUrl, bytes.NewBuffer(jsonStr))
+	req, err = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	assert.Nil(t, err)
 	req.Header.Set("Content-Type", "application/json")
 	resp, err = client.Do(req)
 	assert.Nil(t, err)
@@ -88,9 +94,9 @@ func TestRouterLogin(t *testing.T) {
 	super.Password = "LamePassword"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
-	req, err = http.NewRequest("POST", loginUrl, bytes.NewBuffer(jsonStr))
+	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err = client.Do(req)
+	resp, _ = client.Do(req)
 	assert.Nil(t, err)
 	assert.Equal(t, 403, resp.StatusCode)
 	resp.Body.Close()
@@ -99,15 +105,67 @@ func TestRouterLogin(t *testing.T) {
 	super.Password = "LamePassword"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
-	req, err = http.NewRequest("POST", loginUrl, bytes.NewBuffer(jsonStr))
+	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
-	resp, err = client.Do(req)
-	defer resp.Body.Close()
+	resp, _ = client.Do(req)
 	assert.Equal(t, 201, resp.StatusCode)
-	fmt.Println("response Status:", resp.Status)
-	fmt.Println("response Headers:", resp.Header)
+	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal(body, &myToken)
 	fmt.Println("Token:", myToken.Token)
 	assert.NotEmpty(t, myToken.Token)
+}
+
+func TestRouterLoginPlugin(t *testing.T) {
+	var myToken JSONToken
+	// test login cases
+	super := new(UserAuth)
+	db := new(qdb.Qdb)
+	client := &http.Client{}
+
+	db.Type = "mongodb"
+	db.Timeout = time.Second * 10
+	db.URL = "localhost"
+	session, err := db.Open()
+	assert.Nil(t, err)
+	router, err := New("localhost:9090", session)
+	assert.Nil(t, err)
+	err = router.EnablePlugins("rauth")
+	assert.Nil(t, err)
+	err = router.Enable()
+	assert.Nil(t, err)
+
+	server := httptest.NewServer(router.Mux)
+	defer server.Close()
+	loginURL := fmt.Sprintf("%s/login", server.URL)
+
+	super.Name = "super"
+	super.Password = "LamePassword"
+	jsonStr, err := json.Marshal(super)
+	assert.Nil(t, err)
+	req, _ := http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, 201, resp.StatusCode)
+	body, _ := ioutil.ReadAll(resp.Body)
+	json.Unmarshal(body, &myToken)
+	resp.Body.Close()
+	assert.NotEmpty(t, myToken.Token)
+	statURL := fmt.Sprintf("%s/stat", server.URL)
+	req, _ = http.NewRequest("GET", statURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	body, _ = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	assert.Equal(t, 403, resp.StatusCode)
+	req, _ = http.NewRequest("GET", statURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", myToken.Token)
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	body, _ = ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	assert.Equal(t, 201, resp.StatusCode) // auth succeed
 }

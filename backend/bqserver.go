@@ -21,7 +21,7 @@ type Config struct {
 func main() {
 	var configName = flag.String("config", ".qstepserver.conf", "bqstepserver config")
 	var verbose = flag.Bool("verbose", true, "set to true to verbose mode")
-	var restUrl = flag.String("url", "localhost:9090", "web rest url")
+	var restURL = flag.String("url", "localhost:9090", "web rest url")
 	var config Config
 
 	flag.Parse()
@@ -47,9 +47,15 @@ func main() {
 		log.Fatal("Database connection failed : ", err)
 	}
 	defer config.Db.Close()
-	router, err := qrouter.New(*restUrl, session)
+	router, err := qrouter.New(*restURL, session)
 	if err != nil {
 		log.Fatal("Router create failed : ", err)
+	}
+	if len(config.RestPlugins) > 0 {
+		err = router.EnablePlugins(config.RestPlugins)
+		if err != nil {
+			log.Fatal("Can't bring up plugins : ", err)
+		}
 	}
 	err = router.Enable()
 	if err != nil {

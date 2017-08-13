@@ -16,23 +16,27 @@ import (
 	mgo "gopkg.in/mgo.v2"
 )
 
+/*Qdb - dtabase abstraction class */
 type Qdb struct {
 	Type    string `yaml: "type"`
-	Url     string `yaml: "url"`
+	URL     string `yaml: "url"`
 	Timeout time.Duration
 }
 
+/*QSession database session abtraction struct */
 type QSession struct {
 	mgoSession *mgo.Session
 	SigningKey []byte
 }
 
+/*Close close session */
 func (s *QSession) Close() {
 	if s.mgoSession != nil {
 		s.mgoSession.Close()
 	}
 }
 
+/*New - create new session*/
 func (s *QSession) New() *QSession {
 	// create abstraction session
 	var c *QSession
@@ -47,7 +51,7 @@ func (q *Qdb) openMongo() (*QSession, error) {
 	// open mongo db
 	var err error
 	s := new(QSession)
-	s.mgoSession, err = mgo.DialWithTimeout(q.Url, q.Timeout)
+	s.mgoSession, err = mgo.DialWithTimeout(q.URL, q.Timeout)
 	if err != nil {
 		return nil, err
 	}
@@ -105,6 +109,7 @@ func indexMongo(s *mgo.Session) error {
 	return nil
 }
 
+/*Open database */
 func (q *Qdb) Open() (*QSession, error) {
 	var err error
 	var session *QSession
@@ -112,7 +117,7 @@ func (q *Qdb) Open() (*QSession, error) {
 	if len(q.Type) == 0 {
 		return session, errors.New("Type can't be empty")
 	}
-	if len(q.Url) == 0 {
+	if len(q.URL) == 0 {
 		return session, errors.New("Url can't be empty")
 	}
 	if q.Timeout == (time.Second * 0) {
@@ -130,6 +135,7 @@ func (q *Qdb) Open() (*QSession, error) {
 	return session, err
 }
 
+/*Close close database */
 func (q *Qdb) Close() error {
 	return nil
 }

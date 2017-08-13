@@ -14,7 +14,7 @@ func TestDbOpen(t *testing.T) {
 	db.Type = "Blah"
 	_, err = db.Open()
 	assert.Error(t, err)
-	db.Url = "localhostBadName"
+	db.URL = "localhostBadName"
 	// don't wait use short timeout
 	db.Timeout = time.Second * 1
 	_, err = db.Open()
@@ -26,13 +26,13 @@ func TestDbOpen(t *testing.T) {
 	_, err = db.Open()
 	assert.Error(t, err)
 	db.Timeout = time.Second * 10
-	db.Url = "localhost"
+	db.URL = "localhost"
 	session, err := db.Open()
 	assert.Nil(t, err)
 	defer session.Close()
-	new_session := session.New()
-	assert.NotNil(t, new_session)
-	defer new_session.Close()
+	newSession := session.New()
+	assert.NotNil(t, newSession)
+	defer newSession.Close()
 	err = db.Close()
 	assert.Nil(t, err)
 

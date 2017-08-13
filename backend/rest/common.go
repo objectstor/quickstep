@@ -10,5 +10,5 @@ import (
 func JsonError(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
-	fmt.Fprintf(w, "{resp: %q}", message)
+	fmt.Fprintf(w, "{error: %q}", message)
 }
