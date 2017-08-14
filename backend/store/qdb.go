@@ -14,6 +14,7 @@ import (
 	"time"
 
 	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 /*Qdb - dtabase abstraction class */
@@ -46,6 +47,40 @@ func (s *QSession) New() *QSession {
 		c.SigningKey = s.SigningKey
 	}
 	return c
+}
+
+//FindUser - user with specific Name
+func (s *QSession) FindUser(name string) *User {
+	if s.mgoSession != nil && len(name) > 0 {
+		c := s.mgoSession.DB("store").C("Users")
+		result := User{}
+		err := c.Find(bson.M{"name": name}).One(&result)
+		if err != nil {
+			if err == mgo.ErrNotFound {
+				return &result
+			}
+			return nil
+		}
+		return &result
+	}
+	// do mysql when supported
+	return nil
+}
+
+//InsertUser - user with specific Name
+func (s *QSession) InsertUser(user *User) error {
+	if s.mgoSession != nil {
+		c := s.mgoSession.DB("store").C("Users")
+		err := c.Insert(user)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+		return nil
+	}
+	// do mysql when supported
+	return nil
+
 }
 
 func (q *Qdb) openMongo() (*QSession, error) {
@@ -85,7 +120,7 @@ func indexMongo(s *mgo.Session) error {
 	}
 	u := userSession.DB("store").C("users")
 	indexUsers := mgo.Index{
-		Key:        []string{"hash"},
+		Key:        []string{"Name"},
 		Unique:     true,
 		DropDups:   true,
 		Background: true,
@@ -97,7 +132,7 @@ func indexMongo(s *mgo.Session) error {
 	}
 	t := tokenSession.DB("auth").C("token")
 	indexTokens := mgo.Index{
-		Key:        []string{"id"},
+		Key:        []string{"ID"},
 		Unique:     true,
 		DropDups:   true,
 		Background: true,
