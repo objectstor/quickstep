@@ -63,10 +63,15 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getStat(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Location", r.URL.Path)
-		w.WriteHeader(http.StatusCreated)
+func getStat(w http.ResponseWriter, r *http.Request) {
+
+	//temporary change
+	session := GetDbSession(r)
+	if session != nil {
+		fmt.Println(string(session.SigningKey))
 	}
+	// end of temporary change
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Location", r.URL.Path)
+	w.WriteHeader(http.StatusCreated)
 }

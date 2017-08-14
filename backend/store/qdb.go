@@ -43,6 +43,7 @@ func (s *QSession) New() *QSession {
 	if s.mgoSession != nil {
 		c = new(QSession)
 		c.mgoSession = s.mgoSession.Copy()
+		c.SigningKey = s.SigningKey
 	}
 	return c
 }
