@@ -35,5 +35,8 @@ func TestDbOpen(t *testing.T) {
 	defer newSession.Close()
 	err = db.Close()
 	assert.Nil(t, err)
+}
+
+func TestDBUser(t *testing.T) {
 
 }

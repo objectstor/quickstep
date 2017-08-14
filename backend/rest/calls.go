@@ -13,6 +13,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
+//QuickStepUserClaims used by token
 type QuickStepUserClaims struct {
 	Owner string `json:"owner"`
 	jwt.StandardClaims
@@ -44,6 +45,7 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			JsonError(w, "Auth error", http.StatusForbidden)
 			return
 		}
+		// get user
 
 		// Create the Claims
 		claims := QuickStepUserClaims{
@@ -66,9 +68,13 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 func getStat(w http.ResponseWriter, r *http.Request) {
 
 	//temporary change
-	session := GetDbSession(r)
+	session := GetDbSessionFromContext(r)
 	if session != nil {
 		fmt.Println(string(session.SigningKey))
+	}
+	user := GetUserFromContext(r)
+	if len(user) > 0 {
+		fmt.Println(user)
 	}
 	// end of temporary change
 	w.Header().Set("Content-Type", "application/json")

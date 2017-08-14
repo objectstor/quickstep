@@ -78,6 +78,18 @@ func TestRouterLogin(t *testing.T) {
 	resp.Body.Close()
 	assert.Nil(t, err)
 	assert.Equal(t, 403, resp.StatusCode)
+	// bad json
+	jsonStr = []byte(`this is not jeson string`)
+	req, err = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	assert.Nil(t, err)
+	//req.Header.Set("X-Custom-Header", "myvalue")
+	req.Header.Set("Content-Type", "application/json")
+
+	client = &http.Client{}
+	resp, err = client.Do(req)
+	resp.Body.Close()
+	assert.Nil(t, err)
+	assert.Equal(t, 403, resp.StatusCode)
 
 	super.Name = "super"
 	jsonStr, err = json.Marshal(super)

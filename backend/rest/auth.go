@@ -21,8 +21,11 @@ type tokenAuth struct {
 }
 
 func (t tokenAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var user string
+	var status bool
 	if strings.Compare(r.URL.String(), "/login") != 0 { // for all url except login
-		if t.authenticate(r) == false {
+		user, status = t.authenticate(r)
+		if status == false {
 			JsonError(w, "Auth Error", http.StatusForbidden)
 			return
 		}
@@ -31,6 +34,9 @@ func (t tokenAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		dbsession := t.session.New()
 		defer dbsession.Close() // clean up
 		ctx := context.WithValue(r.Context(), "dbsession", dbsession)
+		if len(user) > 0 {
+			ctx = context.WithValue(ctx, "user", user)
+		}
 		t.h.ServeHTTP(w, r.WithContext(ctx))
 	} else {
 		t.h.ServeHTTP(w, r)
@@ -38,10 +44,10 @@ func (t tokenAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 // authenticate - actual authentication
-func (t *tokenAuth) authenticate(r *http.Request) bool {
+func (t *tokenAuth) authenticate(r *http.Request) (string, bool) {
 	tokenString := r.Header.Get("X-Golden-Ticket")
 	if len(tokenString) == 0 {
-		return false
+		return "", false
 	}
 	token, err := jwt.ParseWithClaims(tokenString, &QuickStepUserClaims{}, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
@@ -55,12 +61,12 @@ func (t *tokenAuth) authenticate(r *http.Request) bool {
 			if claims.VerifyIssuer("quickStep", true) {
 				if claims.VerifyExpiresAt(time.Now().Unix(), true) {
 					// we have valid token
-					return true
+					return claims.Owner, true
 				}
 			}
 		}
 	}
-	return false
+	return "", false
 }
 
 // TokenAuth -  token authentication

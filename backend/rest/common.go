@@ -14,11 +14,20 @@ func JsonError(w http.ResponseWriter, message string, code int) {
 	fmt.Fprintf(w, "{error: %q}", message)
 }
 
-/*GetDbSession retrive db session from context */
-func GetDbSession(r *http.Request) *qdb.QSession {
+/*GetDbSessionFromContext retrive db session from context */
+func GetDbSessionFromContext(r *http.Request) *qdb.QSession {
 	session := r.Context().Value("dbsession")
 	if session != nil {
 		return session.(*qdb.QSession)
 	}
 	return nil
+}
+
+/*GetUserFromContext retrive user from context */
+func GetUserFromContext(r *http.Request) string {
+	session := r.Context().Value("user")
+	if session != nil {
+		return session.(string)
+	}
+	return ""
 }
