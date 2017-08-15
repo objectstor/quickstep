@@ -3,4 +3,6 @@ gopkg.in/mgo.v2
 github.com/dgrijalva/jwt-go
 goji.io
 github.com/tebeka/go2xunit
+github.com/axw/gocov/gocov
+github.com/AlekSi/gocov-xml
 
