@@ -50,21 +50,18 @@ func (s *QSession) New() *QSession {
 }
 
 //FindUser - user with specific Name
-func (s *QSession) FindUser(name string) *User {
+func (s *QSession) FindUser(name string) (*User, error) {
 	if s.mgoSession != nil && len(name) > 0 {
 		c := s.mgoSession.DB("store").C("Users")
 		result := User{}
 		err := c.Find(bson.M{"name": name}).One(&result)
 		if err != nil {
-			if err == mgo.ErrNotFound {
-				return &result
-			}
-			return nil
+			return nil, err
 		}
-		return &result
+		return &result, nil
 	}
 	// do mysql when supported
-	return nil
+	return nil, &mgo.QueryError{0, "Bad parameters or db not defined", false}
 }
 
 //InsertUser - user with specific Name
@@ -73,14 +70,12 @@ func (s *QSession) InsertUser(user *User) error {
 		c := s.mgoSession.DB("store").C("Users")
 		err := c.Insert(user)
 		if err != nil {
-			fmt.Println(err)
-			return nil
+			return err
 		}
 		return nil
 	}
 	// do mysql when supported
-	return nil
-
+	return errors.New("session empty or unsupported engine")
 }
 
 func (q *Qdb) openMongo() (*QSession, error) {

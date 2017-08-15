@@ -1,13 +1,12 @@
 package qdb
 
 import (
-	"fmt"
 	"testing"
 	"time"
 
-	"gopkg.in/mgo.v2/bson"
-
 	"github.com/stretchr/testify/assert"
+	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func TestDbOpen(t *testing.T) {
@@ -47,18 +46,26 @@ func TestDBUserInsertFind(t *testing.T) {
 	db.URL = "localhost"
 	session, err := db.Open()
 	assert.Nil(t, err)
+	defer db.Close()
 	user := new(User)
 	user.ID = bson.NewObjectId()
 	user.Name = "super"
 	user.Password = "password"
 	err = session.InsertUser(user)
 	assert.Nil(t, err)
-	fmt.Printf("INSERTED\n")
-	newUser := session.FindUser("super")
+	newUser, _ := session.FindUser("super")
 	assert.NotNil(t, newUser)
 	assert.Equal(t, user.Name, newUser.Name)
-	emptyUser := session.FindUser("super_one")
-	assert.Empty(t, emptyUser.Name)
+	_, dberr := session.FindUser("super_one")
+	assert.Equal(t, mgo.ErrNotFound, dberr)
 	defer session.Close()
-	defer db.Close()
+	_, dberr = session.FindUser("")
+	assert.Error(t, dberr)
+	emptyuser := new(User)
+	err = session.InsertUser(emptyuser)
+	assert.Error(t, err)
+	session.mgoSession = nil
+	err = session.InsertUser(emptyuser)
+	assert.Error(t, err)
+
 }
