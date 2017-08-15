@@ -5,6 +5,7 @@ test engine for jenkins
 import os
 import sys
 import subprocess
+
 try:
     import pip
 except ImportError:
@@ -26,11 +27,17 @@ try:
 except ImportError:
     pip.main(["install", "jinja2"])
     from jinja2 import Environment, FileSystemLoader
+try:
+    import psutil
+except ImportError:
+    pip.main(["install", "psutil"])
+    import psutil
+
 
 
 GO_PATH = "/usr/local/go/bin"
 # dirs without go tests
-SKIP_TEST_LIST = ['/doc', '/tmp']
+SKIP_TEST_LIST = ['/doc', '/tmp', '/src']
 
 
 class GoTests(object):
@@ -57,10 +64,26 @@ class GoTests(object):
                 _path += ":%s" % GO_PATH
             os.environ["PATH"] = _path
             os.environ["GOPATH"] = self.workspace
-            self._main_path = os.path.join(self.workspace, "src/quickstep/backend")
+            self._main_path = os.path.join(self.workspace, "backend")
             self.template_dir = os.path.join(self._main_path, "tmp")
+	    go_src=os.path.join(self.workspace, "src")
+	    go_project_src=os.path.join(go_src ,"quickstep")
+	    if not os.path.exists(go_src):
+	    	os.mkdir(go_src)
+	    if not os.path.islink(go_project_src) :
+	    	os.symlink(self.workspace, go_project_src)
+
         os.chdir(self._main_path)
         # get all dependencies
+        if not self.check_databases():
+            print colored('ERROR: Database check failed', 'red')
+            print "for installation refer to: "
+            print "https://docs.mongodb.com/manual/administration/install-on-linux/"
+            print 
+	    raise TypeError
+        else:
+            print "Database : ", colored("OK", "green")
+
         if not self.load_imports():
             print colored('ERROR: Import failed', 'red')
         else:
@@ -238,6 +261,19 @@ class GoTests(object):
 
         for subdir in zero_length_tests:
             print colored('ERROR:', 'red'), "subdirectory: ", colored(subdir, attrs=['bold']), "- have no tests defined !!!!"
+
+    def check_databases(self):
+	''' check if databases are running '''
+        found = False
+	for proc in psutil.process_iter():
+	    try:
+                pinfo = proc.as_dict(attrs=['pid', 'name'])
+            except psutil.NoSuchProcess:
+                pass
+            else:
+                if pinfo['name'] == 'mongod':
+                    found = True
+	return found
 
     def load_imports(self):
         ''' load all go imports '''

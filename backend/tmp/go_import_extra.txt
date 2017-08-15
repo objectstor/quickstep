@@ -2,4 +2,5 @@ github.com/stretchr/testify/assert
 gopkg.in/mgo.v2
 github.com/dgrijalva/jwt-go
 goji.io
+github.com/tebeka/go2xunit
 

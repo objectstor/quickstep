@@ -32,7 +32,8 @@ type QSession struct {
 
 /*Close close session */
 func (s *QSession) Close() {
-	if s.mgoSession != nil {
+	
+	if s != nil && s.mgoSession != nil {
 		s.mgoSession.Close()
 	}
 }
@@ -41,7 +42,7 @@ func (s *QSession) Close() {
 func (s *QSession) New() *QSession {
 	// create abstraction session
 	var c *QSession
-	if s.mgoSession != nil {
+	if s != nil && s.mgoSession != nil {
 		c = new(QSession)
 		c.mgoSession = s.mgoSession.Copy()
 		c.SigningKey = s.SigningKey
@@ -51,7 +52,7 @@ func (s *QSession) New() *QSession {
 
 //FindUser - user with specific Name
 func (s *QSession) FindUser(name string) (*User, error) {
-	if s.mgoSession != nil && len(name) > 0 {
+	if s!= nil && s.mgoSession != nil && len(name) > 0 {
 		c := s.mgoSession.DB("store").C("Users")
 		result := User{}
 		err := c.Find(bson.M{"name": name}).One(&result)
@@ -66,7 +67,7 @@ func (s *QSession) FindUser(name string) (*User, error) {
 
 //InsertUser - user with specific Name
 func (s *QSession) InsertUser(user *User) error {
-	if s.mgoSession != nil {
+	if s != nil && s.mgoSession != nil {
 		c := s.mgoSession.DB("store").C("Users")
 		err := c.Insert(user)
 		if err != nil {

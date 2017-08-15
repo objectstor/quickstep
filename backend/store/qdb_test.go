@@ -3,7 +3,7 @@ package qdb
 import (
 	"testing"
 	"time"
-
+	"strings"
 	"github.com/stretchr/testify/assert"
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
@@ -53,9 +53,10 @@ func TestDBUserInsertFind(t *testing.T) {
 	user.Password = "password"
 	err = session.InsertUser(user)
 	assert.Nil(t, err)
-	newUser, _ := session.FindUser("super")
+	newUser, nerr := session.FindUser("super")
 	assert.NotNil(t, newUser)
-	assert.Equal(t, user.Name, newUser.Name)
+	assert.Nil(t, nerr)
+	assert.Equal(t, strings.Compare(user.Name,newUser.Name), 0)
 	_, dberr := session.FindUser("super_one")
 	assert.Equal(t, mgo.ErrNotFound, dberr)
 	defer session.Close()
@@ -64,8 +65,10 @@ func TestDBUserInsertFind(t *testing.T) {
 	emptyuser := new(User)
 	err = session.InsertUser(emptyuser)
 	assert.Error(t, err)
-	session.mgoSession = nil
-	err = session.InsertUser(emptyuser)
-	assert.Error(t, err)
+	if session != nil {
+	    session.mgoSession = nil
+	    err = session.InsertUser(emptyuser)
+	    assert.Error(t, err)
+	}
 
 }
