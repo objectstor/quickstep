@@ -32,12 +32,23 @@ try:
 except ImportError:
     pip.main(["install", "psutil"])
     import psutil
+try:
+    import shutil
+except ImportError:
+    pip.main(["install", "shutil"])
+    import shutil
 
 
 
 GO_PATH = "/usr/local/go/bin"
 # dirs without go tests
-SKIP_TEST_LIST = ['/doc', '/tmp', '/src']
+SKIP_TEST_LIST = ['/doc', '/tmp']
+
+def copy_and_overwrite(from_path, to_path):
+    if os.path.exists(to_path):
+        shutil.rmtree(to_path)
+    shutil.copytree(from_path, to_path)
+
 
 
 class GoTests(object):
@@ -63,23 +74,30 @@ class GoTests(object):
             if GO_PATH not in _path:
                 _path += ":%s" % GO_PATH
             os.environ["PATH"] = _path
+            # now we need to copy to match go src standrts
             os.environ["GOPATH"] = self.workspace
+            #create src
+            go_src=os.path.join(self.workspace, "src")
+            go_project_src=os.path.join(go_src ,"quickstep")
+            if not os.path.exists(go_src):
+                os.mkdir(go_src)
+            if not os.path.exists(go_project_src) :
+                os.mkdir(go_project_src)
+	    _temp_path_src=os.path.join(self.workspace , "backend")
+	    _temp_path_target=os.path.join(go_project_src , "backend")
+	    copy_and_overwrite(_temp_path_src,_temp_path_target)
+            #create new workspace
+            self.workspace =  os.path.join(self.workspace, "src/quickstep")
             self._main_path = os.path.join(self.workspace, "backend")
             self.template_dir = os.path.join(self._main_path, "tmp")
-	    go_src=os.path.join(self.workspace, "src")
-	    go_project_src=os.path.join(go_src ,"quickstep")
-	    if not os.path.exists(go_src):
-	    	os.mkdir(go_src)
-	    if not os.path.islink(go_project_src) :
-	    	os.symlink(self.workspace, go_project_src)
-
+	   
         os.chdir(self._main_path)
         # get all dependencies
         if not self.check_databases():
             print colored('ERROR: Database check failed', 'red')
             print "for installation refer to: "
             print "https://docs.mongodb.com/manual/administration/install-on-linux/"
-            print 
+            print
 	    raise TypeError
         else:
             print "Database : ", colored("OK", "green")
