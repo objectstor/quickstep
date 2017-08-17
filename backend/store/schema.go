@@ -58,3 +58,27 @@ func CreateACL(domain string, perm string) *ACLPerm {
 	}
 	return acl
 }
+
+//CheckACL - check acl permission
+func CheckACL(u *User, domain string, perm string) bool {
+	var havePerm bool
+	havePerm = false
+	for _, acl := range u.ACL {
+		if strings.HasSuffix(acl.Domain, domain) {
+			for _, sPerm := range strings.Split(strings.ToLower(perm), "") {
+				switch sPerm {
+				case "c":
+					havePerm = acl.Create
+				case "r":
+					havePerm = acl.Read
+				case "u":
+					havePerm = acl.Update
+				case "d":
+					havePerm = acl.Delete
+				}
+			}
+		}
+		break
+	}
+	return havePerm
+}
