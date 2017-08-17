@@ -13,6 +13,7 @@ type User struct {
 	ID       bson.ObjectId `json:"id" bson:"_id"`
 	Name     string        `json:"name" bson:"name"`
 	Password string        `json:"password" bson:"password"`
+	Org      string        `json: "org" bson:"org"`
 }
 
 /*Tokens - token schema */

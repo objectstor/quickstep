@@ -52,9 +52,6 @@ func (r *RServer) Enable() error {
 		switch strings.ToLower(plugin) {
 		case "logging":
 			r.Mux.Use(logging) //!Untested
-		case "rauth":
-			useTokenAuth = true
-			r.Mux.Use(TokenAuth(r.s)) //!untested
 		}
 	}
 	if !useTokenAuth {

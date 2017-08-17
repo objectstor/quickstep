@@ -46,38 +46,52 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// get user
-
-		// Create the Claims
-		claims := QuickStepUserClaims{
-			userAuth.Name, // this chould be user id
-			jwt.StandardClaims{
-				ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
-				Issuer:    "quickStep", // this should be host most likelly
-			},
+		user, err := session.FindUser(userAuth.Name)
+		if err != nil {
+			JsonError(w, "Auth error", http.StatusForbidden)
+			return
 		}
+		if user.Name == userAuth.Name && user.Password == userAuth.Password {
+			// Create the Claims
+			claims := QuickStepUserClaims{
+				userAuth.Name, // this chould be user id
+				jwt.StandardClaims{
+					ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
+					Issuer:    "quickStep", // this should be host most likelly
+				},
+			}
 
-		token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-		tokenString, err := token.SignedString(s.SigningKey)
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Location", r.URL.Path)
-		w.WriteHeader(http.StatusCreated)
-		fmt.Fprintf(w, "{\"token\": \"%s\"}", tokenString)
+			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+			tokenString, err := token.SignedString(s.SigningKey)
+			if err != nil {
+				JsonError(w, "Auth error", http.StatusInternalServerError)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Location", r.URL.Path)
+			w.WriteHeader(http.StatusOK)
+			fmt.Fprintf(w, "{\"token\": \"%s\"}", tokenString)
+		} else {
+			JsonError(w, "Auth error", http.StatusForbidden)
+			return
+		}
 	}
 }
 
 func getStat(w http.ResponseWriter, r *http.Request) {
-
 	//temporary change
 	session := GetDbSessionFromContext(r)
+	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Location", r.URL.Path)
+
 	if session != nil {
-		fmt.Println(string(session.SigningKey))
+		fmt.Fprintf(w, "change:  key_not_empty\n")
+
 	}
 	user := GetUserFromContext(r)
 	if len(user) > 0 {
-		fmt.Println(user)
+		fmt.Fprintf(w, "change:  user_not_empty\n")
 	}
 	// end of temporary change
-	w.Header().Set("Content-Type", "application/json")
-	w.Header().Set("Location", r.URL.Path)
-	w.WriteHeader(http.StatusCreated)
 }

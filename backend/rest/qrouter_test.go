@@ -114,17 +114,16 @@ func TestRouterLogin(t *testing.T) {
 	resp.Body.Close()
 
 	super.Name = "super"
-	super.Password = "LamePassword"
+	super.Password = "password"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
 	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	resp, _ = client.Do(req)
-	assert.Equal(t, 201, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	defer resp.Body.Close()
 	body, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal(body, &myToken)
-	fmt.Println("Token:", myToken.Token)
 	assert.NotEmpty(t, myToken.Token)
 }
 
@@ -152,14 +151,14 @@ func TestRouterLoginPlugin(t *testing.T) {
 	loginURL := fmt.Sprintf("%s/login", server.URL)
 
 	super.Name = "super"
-	super.Password = "LamePassword"
+	super.Password = "password"
 	jsonStr, err := json.Marshal(super)
 	assert.Nil(t, err)
 	req, _ := http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := client.Do(req)
 	assert.Nil(t, err)
-	assert.Equal(t, 201, resp.StatusCode)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	body, _ := ioutil.ReadAll(resp.Body)
 	json.Unmarshal(body, &myToken)
 	resp.Body.Close()
@@ -179,5 +178,20 @@ func TestRouterLoginPlugin(t *testing.T) {
 	assert.Nil(t, err)
 	body, _ = ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
-	assert.Equal(t, 201, resp.StatusCode) // auth succeed
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+	super.Name = "super"
+	super.Password = "bad_password"
+	jsonStr, err = json.Marshal(super)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, 403, resp.StatusCode)
+	router.s.SigningKey = []byte("BAD_SIGN_KEY")
+	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, 403, resp.StatusCode)
 }
