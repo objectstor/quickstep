@@ -37,10 +37,11 @@ func CheckOrCreateSuper(password string, s *qdb.QSession, minPasswdLen int) erro
 				msg := fmt.Sprintf("Password too short. Should be at least %d characters long.\n", minPasswdLen)
 				return errors.New(msg)
 			}
+			acl := qdb.CreateACL("", "crud")
 			user := new(qdb.User)
 			user.ID = bson.NewObjectId()
 			user.Name = "system"
-			user.ACL = ":crw"
+			user.ACL = append(user.ACL, *acl)
 			h := sha1.New()
 			h.Write([]byte(password))
 			user.Password = hex.EncodeToString(h.Sum(nil))

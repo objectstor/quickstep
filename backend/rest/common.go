@@ -3,9 +3,11 @@ package qrouter
 /* common function for rest
  */
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"quickstep/backend/store"
+	"strings"
 )
 
 func JsonError(w http.ResponseWriter, message string, code int) {
@@ -43,4 +45,16 @@ func ValidUserAndSession(s *qdb.QSession, u string, w http.ResponseWriter) bool 
 		return false
 	}
 	return true
+}
+
+//GetUserAndOrg - get user and org parts from user
+func GetUserAndOrg(u string) (string, string, error) {
+	uo := strings.SplitN(u, "#", 2)
+	if len(uo) != 2 {
+		return "", "", errors.New("UserArg bad format")
+	}
+	if len(uo[1]) == 0 {
+		uo[1] = "SYSTEM"
+	}
+	return uo[0], uo[1], nil
 }

@@ -48,11 +48,12 @@ func TestDBUserInsertFind(t *testing.T) {
 	session, err := db.Open()
 	assert.Nil(t, err)
 	defer db.Close()
+	acl := CreateACL("org", "crud")
 	user := new(User)
 	user.ID = bson.NewObjectId()
 	user.Name = "super"
 	user.Password = "password"
-	user.ACL = ":crw"
+	user.ACL = append(user.ACL, *acl)
 	user.Org = "org"
 	err = session.InsertUser(user)
 	assert.Nil(t, err)

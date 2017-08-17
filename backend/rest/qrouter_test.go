@@ -259,20 +259,24 @@ func TestCreateGetUser(t *testing.T) {
 	body, _ := ioutil.ReadAll(resp.Body)
 	resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
-	fmt.Println(body)
+    fmt.Println(body)
 
+	bacl := qdb.CreateACL("blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "admin"
 	blahOrgUser.Password = "password"
 	blahOrgUser.Org = "blah.org"
-	blahOrgUser.ACL = ":crw" // can create modify list users in blah domain
+	blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
 	blahJSON, err := json.Marshal(blahOrgUser)
 	assert.Nil(t, err)
 	fooOrgUser := new(qdb.User)
 	fooOrgUser.Name = "admin"
 	fooOrgUser.Password = "password"
 	fooOrgUser.Org = "foo.org"
-	fooOrgUser.ACL = ":crw,blah.org:crw" // can create modify read users in blah.org and foo.org domain
+	facl := qdb.CreateACL("foo.org", "crud")
+	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
+	facl = qdb.CreateACL("blah.org", "crud")
+	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
 	fooJSON, err := json.Marshal(fooOrgUser)
 	assert.Nil(t, err)
 
