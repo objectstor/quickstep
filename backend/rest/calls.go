@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"net/http"
 	"quickstep/backend/store"
+	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -54,7 +55,6 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 		if user.Name == userAuth.Name && user.Password == userAuth.Password {
 			// create user string
 			owner := fmt.Sprintf("%s.%s", user.Name, user.Org)
-			fmt.Printf("AUTHENTICATION: owner %s\n", owner)
 			// Create the Claims
 			claims := QuickStepUserClaims{
 				owner, // this chould be user id
@@ -98,20 +98,41 @@ func getStat(w http.ResponseWriter, r *http.Request) {
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
+	var dbUser qdb.User
 	session := GetDbSessionFromContext(r)
-	user := GetUserFromContext(r)
-	if !ValidUserAndSession(session, user, w) {
+	restuser := GetUserFromContext(r)
+	if !ValidUserAndSession(session, restuser, w) {
 		return
 	}
-
-	fmt.Printf("create/update  new user: user from token %s\n", user)
+	acl := strings.SplitN(restuser, ".", 2)
+	if len(acl[1]) == 0 {
+		acl[1] = "SYSTEM"
+	}
+	// let's decode body
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&dbUser)
+	if err != nil {
+		JsonError(w, "Auth error", http.StatusForbidden)
+		return
+	}
+	fmt.Printf("createUser() User.Name: %s User.Org: %s, token# user: \"%s\" org: %s\n", dbUser.Name, dbUser.Org, acl[0], acl[1])
+	if len(dbUser.Org) == 0 {
+		fmt.Println("failed\n")
+	}
+	// get antry from db and check if we can do something within domain
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
 	session := GetDbSessionFromContext(r)
-	user := GetUserFromContext(r)
-	if !ValidUserAndSession(session, user, w) {
+	restuser := GetUserFromContext(r)
+	if !ValidUserAndSession(session, restuser, w) {
 		return
 	}
-	fmt.Printf("get new user - (password not seen) - token from user %s\n", user)
+	acl := strings.SplitN(restuser, ".", 2)
+	if len(acl[1]) == 0 {
+		acl[1] = "SYSTEM"
+	}
+	fmt.Printf("getUser() token user: \"%s\" org: %s\n", acl[0], acl[1])
+	// we should check if in body other domain is not specified
+	// if so we should check if we have access to that domain
 }

@@ -53,6 +53,7 @@ func TestDBUserInsertFind(t *testing.T) {
 	user.Name = "super"
 	user.Password = "password"
 	user.ACL = ":crw"
+	user.Org = "org"
 	err = session.InsertUser(user)
 	assert.Nil(t, err)
 	newUser, nerr := session.FindUser("super")
@@ -72,5 +73,4 @@ func TestDBUserInsertFind(t *testing.T) {
 		err = session.InsertUser(emptyuser)
 		assert.Error(t, err)
 	}
-
 }

@@ -104,6 +104,7 @@ func TestRouterLogin(t *testing.T) {
 
 	super.Name = ""
 	super.Password = "LamePassword"
+	super.Org = "org"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
 	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
@@ -152,6 +153,7 @@ func TestRouterLoginPlugin(t *testing.T) {
 
 	super.Name = "super"
 	super.Password = "password"
+	super.Org = "org"
 	jsonStr, err := json.Marshal(super)
 	assert.Nil(t, err)
 	req, _ := http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
@@ -224,6 +226,7 @@ func authAndGetToken(user string, passwd string) (*httptest.Server, *JSONToken, 
 	loginURL := fmt.Sprintf("%s/login", server.URL)
 	super.Name = user
 	super.Password = passwd
+	super.Org = "org"
 	jsonStr, err := json.Marshal(super)
 	if err != nil {
 		return nil, nil, err
