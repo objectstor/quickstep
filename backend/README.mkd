@@ -13,7 +13,15 @@ Server responsible for rest/database/internal logic interaction
     echo "export PATH=$PATH:$GOROOT/bin" >> ~/.bashrc
 ```
 
+#### Run as daemon
+    pip install supervisor
+    supervisord -c etc/supervisord.conf
+
+
+```
+
 #### Source
 
 rest - rest server
 store - database abstraction
+etc- - supervisor config stript

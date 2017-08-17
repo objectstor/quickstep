@@ -1,7 +1,11 @@
 package main
 
 import (
+	"crypto/sha1"
+	"encoding/hex"
+	"errors"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -9,18 +13,45 @@ import (
 	"quickstep/backend/rest"
 	"quickstep/backend/store"
 
+	"gopkg.in/mgo.v2/bson"
 	yaml "gopkg.in/yaml.v2"
 )
 
 type Config struct {
-	Name        string  `yaml: "name"`
-	Db          qdb.Qdb `yaml: "db"`
-	RestPlugins string  `yaml: "plugins"`
+	Name            string  `yaml: "name"`
+	Db              qdb.Qdb `yaml: "db"`
+	RestPlugins     string  `yaml: "plugins"`
+	MinPasswdLength int     `yaml: "min_super_passwd"`
 }
 
 //CheckOrCreateSuper - set super user or create new one
-func CheckOrCreateSuper(password string) error {
-	log.Printf("checking passwd %s", password)
+func CheckOrCreateSuper(password string, s *qdb.QSession, minPasswdLen int) error {
+	if s == nil {
+		return errors.New("db session error")
+	}
+	defer s.Close()
+	_, err := s.FindUser("system")
+	if err != nil {
+		if qdb.EntryNotFound(err) {
+			if len(password) < minPasswdLen {
+				msg := fmt.Sprintf("Password too short. Should be at least %d characters long.\n", minPasswdLen)
+				return errors.New(msg)
+			}
+			user := new(qdb.User)
+			user.ID = bson.NewObjectId()
+			user.Name = "system"
+			user.ACL = ":crw"
+			h := sha1.New()
+			h.Write([]byte(password))
+			user.Password = hex.EncodeToString(h.Sum(nil))
+			err = s.InsertUser(user)
+			if err != nil {
+				return err
+			}
+			log.Printf("system user created\n")
+		}
+		return err
+	}
 	return nil
 }
 
@@ -55,9 +86,14 @@ func main() {
 		log.Fatal("Database connection failed : ", err)
 	}
 	if len(*superPassword) > 0 {
-		e := CheckOrCreateSuper(*superPassword)
+		var pLen int
+		pLen = 16 // minimum default length
+		if config.MinPasswdLength > pLen {
+			pLen = config.MinPasswdLength
+		}
+		e := CheckOrCreateSuper(*superPassword, session.New(), pLen)
 		if e != nil {
-			log.Fatal("Super user access error : ", err)
+			log.Fatal("System user error : ", e)
 		}
 	}
 	defer config.Db.Close()

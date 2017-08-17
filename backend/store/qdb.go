@@ -30,9 +30,18 @@ type QSession struct {
 	SigningKey []byte
 }
 
+//EntryNotFound check is erro == Not found
+func EntryNotFound(err error) bool {
+	if err == mgo.ErrNotFound {
+		return true
+	}
+	//TODO add support for mysql
+	return false
+}
+
 /*Close close session */
 func (s *QSession) Close() {
-	
+
 	if s != nil && s.mgoSession != nil {
 		s.mgoSession.Close()
 	}
@@ -52,8 +61,8 @@ func (s *QSession) New() *QSession {
 
 //FindUser - user with specific Name
 func (s *QSession) FindUser(name string) (*User, error) {
-	if s!= nil && s.mgoSession != nil && len(name) > 0 {
-		c := s.mgoSession.DB("store").C("Users")
+	if s != nil && s.mgoSession != nil && len(name) > 0 {
+		c := s.mgoSession.DB("store").C("users")
 		result := User{}
 		err := c.Find(bson.M{"name": name}).One(&result)
 		if err != nil {
@@ -68,7 +77,7 @@ func (s *QSession) FindUser(name string) (*User, error) {
 //InsertUser - user with specific Name
 func (s *QSession) InsertUser(user *User) error {
 	if s != nil && s.mgoSession != nil {
-		c := s.mgoSession.DB("store").C("Users")
+		c := s.mgoSession.DB("store").C("users")
 		err := c.Insert(user)
 		if err != nil {
 			return err

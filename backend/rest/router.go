@@ -40,6 +40,9 @@ func (r *RServer) Enable() error {
 	r.Mux = goji.NewMux()
 	r.Mux.HandleFunc(pat.Post("/login"), doLogin(r.s))
 	r.Mux.HandleFunc(pat.Get("/stat"), getStat)
+	r.Mux.HandleFunc(pat.Post("/user/:name"), createUser)
+	r.Mux.HandleFunc(pat.Get("/user/:name"), getUser)
+
 	//mux.HandleFunc(pat.Head("/task"), getAllTasks(r.s, true))
 	//mux.HandleFunc(pat.Get("/task"), getAllTasks(r.s, false))
 	//mux.HandleFunc(pat.Head("/task/:id"), getTaskById(r.s, true))

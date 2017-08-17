@@ -1,0 +1,29 @@
+<h2>bqserver - backend server for quickstep</h2>
+
+<p>Server responsible for rest/database/internal logic interaction</p>
+
+<h3>Install</h3>
+
+<h4>Go</h4>
+
+<p><code>bash
+    wget https://storage.googleapis.com/golang/go1.8.3.linux-amd64.tar.gz
+    tar -C /usr/local -xzf go1.8.3.linux-amd64.tar.gz go/
+    export PATH=$PATH:/usr/local/go/bin
+    echo "export GOROOT=$HOME/workspace/go" &gt;&gt; ~/.bashrc
+    echo "export PATH=$PATH:$GOROOT/bin" &gt;&gt; ~/.bashrc
+</code></p>
+
+<h4>Run as daemon</h4>
+
+<pre><code>pip install supervisor
+supervisord -c etc/supervisord.conf
+</code></pre>
+
+<p>```</p>
+
+<h4>Source</h4>
+
+<p>rest - rest server
+store - database abstraction
+etc- - supervisor config stript</p>

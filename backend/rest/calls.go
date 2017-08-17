@@ -52,9 +52,12 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if user.Name == userAuth.Name && user.Password == userAuth.Password {
+			// create user string
+			owner := fmt.Sprintf("%s.%s", user.Name, user.Org)
+			fmt.Printf("AUTHENTICATION: owner %s\n", owner)
 			// Create the Claims
 			claims := QuickStepUserClaims{
-				userAuth.Name, // this chould be user id
+				owner, // this chould be user id
 				jwt.StandardClaims{
 					ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
 					Issuer:    "quickStep", // this should be host most likelly
@@ -84,14 +87,31 @@ func getStat(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Location", r.URL.Path)
-
 	if session != nil {
 		fmt.Fprintf(w, "change:  key_not_empty\n")
-
 	}
 	user := GetUserFromContext(r)
 	if len(user) > 0 {
 		fmt.Fprintf(w, "change:  user_not_empty\n")
 	}
 	// end of temporary change
+}
+
+func createUser(w http.ResponseWriter, r *http.Request) {
+	session := GetDbSessionFromContext(r)
+	user := GetUserFromContext(r)
+	if !ValidUserAndSession(session, user, w) {
+		return
+	}
+
+	fmt.Printf("create/update  new user: user from token %s\n", user)
+}
+
+func getUser(w http.ResponseWriter, r *http.Request) {
+	session := GetDbSessionFromContext(r)
+	user := GetUserFromContext(r)
+	if !ValidUserAndSession(session, user, w) {
+		return
+	}
+	fmt.Printf("get new user - (password not seen) - token from user %s\n", user)
 }

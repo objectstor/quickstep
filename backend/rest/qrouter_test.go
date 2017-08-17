@@ -195,3 +195,100 @@ func TestRouterLoginPlugin(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 403, resp.StatusCode)
 }
+
+func authAndGetToken(user string, passwd string) (*httptest.Server, *JSONToken, error) {
+	super := new(UserAuth)
+	db := new(qdb.Qdb)
+	token := new(JSONToken)
+	client := &http.Client{}
+	db.Type = "mongodb"
+	db.Timeout = time.Second * 10
+	db.URL = "localhost"
+	session, err := db.Open()
+	if err != nil {
+		return nil, nil, err
+	}
+	router, err := New("localhost:9090", session)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = router.EnablePlugins("rauth")
+	if err != nil {
+		return nil, nil, err
+	}
+	err = router.Enable()
+	if err != nil {
+		return nil, nil, err
+	}
+	server := httptest.NewServer(router.Mux)
+	loginURL := fmt.Sprintf("%s/login", server.URL)
+	super.Name = user
+	super.Password = passwd
+	jsonStr, err := json.Marshal(super)
+	if err != nil {
+		return nil, nil, err
+	}
+	req, _ := http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, nil, err
+	}
+	body, _ := ioutil.ReadAll(resp.Body)
+	json.Unmarshal(body, token)
+	resp.Body.Close()
+	return server, token, nil
+}
+
+func TestCreateGetUser(t *testing.T) {
+	server, superToken, err := authAndGetToken("super", "password")
+	assert.Nil(t, err)
+	client := &http.Client{}
+	defer server.Close()
+	//jsonStr := "blah" //json.Marshal(super)
+	jsonStr := []byte("")
+	userURL := fmt.Sprintf("%s/user/test", server.URL)
+	req, _ := http.NewRequest("GET", userURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	body, _ := ioutil.ReadAll(resp.Body)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+	fmt.Println(body)
+
+	blahOrgUser := new(qdb.User)
+	blahOrgUser.Name = "admin"
+	blahOrgUser.Password = "password"
+	blahOrgUser.Org = "blah.org"
+	blahOrgUser.ACL = ":crw" // can create modify list users in blah domain
+	blahJSON, err := json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+	fooOrgUser := new(qdb.User)
+	fooOrgUser.Name = "admin"
+	fooOrgUser.Password = "password"
+	fooOrgUser.Org = "foo.org"
+	fooOrgUser.ACL = ":crw,blah.org:crw" // can create modify read users in blah.org and foo.org domain
+	fooJSON, err := json.Marshal(fooOrgUser)
+	assert.Nil(t, err)
+
+	fmt.Println("create blah")
+	// create 2 users
+	userURL = fmt.Sprintf("%s/user/admin", server.URL)
+	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(blahJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+
+	fmt.Println("create foo")
+	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(fooJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+	// get token for both
+	//try to list for both in both domains one should faile
+	// create user for both in both doamins - one should fail
+}

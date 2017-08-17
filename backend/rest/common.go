@@ -31,3 +31,16 @@ func GetUserFromContext(r *http.Request) string {
 	}
 	return ""
 }
+
+//ValidUserAndSession - validat database and user ( true ok)
+func ValidUserAndSession(s *qdb.QSession, u string, w http.ResponseWriter) bool {
+	if s == nil {
+		JsonError(w, "database error", http.StatusNotAcceptable)
+		return false
+	}
+	if len(u) == 0 {
+		JsonError(w, "auth context error", http.StatusForbidden)
+		return false
+	}
+	return true
+}

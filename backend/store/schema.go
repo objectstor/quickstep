@@ -14,6 +14,7 @@ type User struct {
 	Name     string        `json:"name" bson:"name"`
 	Password string        `json:"password" bson:"password"`
 	Org      string        `json: "org" bson:"org"`
+	ACL      string        `json: "acl" bson: "acl"`
 }
 
 /*Tokens - token schema */
