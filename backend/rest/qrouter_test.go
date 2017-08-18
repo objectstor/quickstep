@@ -405,6 +405,7 @@ func TestCreateUserOther(t *testing.T) {
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
+	// bad json ok token
 	userURL := fmt.Sprintf("%s/user/admin", server.URL)
 	req, _ := http.NewRequest("POST", userURL, bytes.NewBufferString("BUMMER"))
 	req.Header.Set("Content-Type", "application/json")
@@ -416,6 +417,7 @@ func TestCreateUserOther(t *testing.T) {
 	qUser.Org = ""
 	jsonBytes, err := json.Marshal(qUser)
 	assert.Nil(t, err)
+	// bad json values ok token
 	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
@@ -424,6 +426,7 @@ func TestCreateUserOther(t *testing.T) {
 	qUser.Name = "admin"
 	jsonBytes, err = json.Marshal(qUser)
 	assert.Nil(t, err)
+	// bad json (org missing) - ok token
 	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
@@ -445,12 +448,14 @@ func TestCreateUserOther(t *testing.T) {
 	assert.Nil(t, err)
 	jsonBytes, err = json.Marshal(blahOrgUser)
 	assert.Nil(t, err)
+	// create blah admin with crud perm
 	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
 	resp, err = client.Do(req)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // ok
 
+	// change directly in db blah admin perm to rd
 	blahOrgUser, err = session.FindUser(blahOrgUser.Name, blahOrgUser.Org)
 	bacl = qdb.CreateACL("blah.org", "rd") // we have now just delete and read access
 	blahOrgUser.ACL[0] = *bacl             // can create modify list users in blah domain
@@ -459,7 +464,8 @@ func TestCreateUserOther(t *testing.T) {
 	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
 	assert.Nil(t, err)
 
-	// create oither user name
+	// create new user using blah admin token
+	// it will fail as blah admin have rd perm only
 	otherUserURL := fmt.Sprintf("%s/user/nuser", server.URL)
 	blahOrgUser.Name = "nuser"
 	jsonBytes, err = json.Marshal(blahOrgUser)
@@ -471,12 +477,15 @@ func TestCreateUserOther(t *testing.T) {
 	resp, err = client.Do(req)
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
 
-	// now get back creation flag for blah admin
+	// now get back crud perm blah
 	blahOrgUser.Name = "admin"
 	bacl = qdb.CreateACL("blah.org", "crud")
 	blahOrgUser.ACL[0] = *bacl
 	jsonBytes, err = json.Marshal(blahOrgUser)
 	assert.Nil(t, err)
+
+	// modify blah admin perm to crud using super token
+	// so it will succeed
 	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
@@ -485,7 +494,7 @@ func TestCreateUserOther(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // ok
 	//try again this should be fine blah admin have proper crud permission
 
-	//create nuser with ru permission for blah.domain
+	//create nuser with ru permission using blah admin ( now have proper permissions)
 	blahOrgUser.ID = "" // remove admin ID
 	blahOrgUser.Name = "nuser"
 	bacl = qdb.CreateACL("blah.org", "ru")
@@ -497,9 +506,6 @@ func TestCreateUserOther(t *testing.T) {
 	req.Header.Set("X-Golden-Ticket", blahToken.Token)
 	resp, err = client.Do(req)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // ok
-
-	//assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
-
 }
 
 func TestGetUserOther(t *testing.T) {
@@ -507,6 +513,7 @@ func TestGetUserOther(t *testing.T) {
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
+	// bad json for GET token ok
 	userURL := fmt.Sprintf("%s/user/admin", server.URL)
 	req, _ := http.NewRequest("GET", userURL, bytes.NewBufferString("BUMMER"))
 	req.Header.Set("Content-Type", "application/json")
@@ -518,6 +525,7 @@ func TestGetUserOther(t *testing.T) {
 	qUser.Org = ""
 	jsonBytes, err := json.Marshal(qUser)
 	assert.Nil(t, err)
+	// json with bad values token ok
 	req, _ = http.NewRequest("GET", userURL, bytes.NewBuffer(jsonBytes))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
@@ -539,11 +547,13 @@ func TestGetUserOther(t *testing.T) {
 	assert.Nil(t, err)
 
 	//blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
+	// delete user from db
 	err = session.DeleteUser(blahOrgUser.Name, blahOrgUser.Org)
 	assert.Nil(t, err)
 	jsonBytes, err = json.Marshal(blahOrgUser)
 	assert.Nil(t, err)
 
+	// self search not correct token - should be nuser
 	otherUserURL := fmt.Sprintf("%s/user/nuser", server.URL)
 	req, _ = http.NewRequest("GET", otherUserURL, bytes.NewBufferString(""))
 	req.Header.Set("Content-Type", "application/json")
@@ -551,11 +561,21 @@ func TestGetUserOther(t *testing.T) {
 	resp, err = client.Do(req)
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode) // auth fail
 
+	// user not exists in db content  = 0 ( self search)
 	req, _ = http.NewRequest("GET", otherUserURL, bytes.NewBufferString(""))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
 	resp, err = client.Do(req)
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode) // auth fail
+
+	//user not exists in db but json is ok token is ok
+	jsonBytes, err = json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("GET", otherUserURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
 	assert.Nil(t, session.InsertUser(blahOrgUser))
 
 }

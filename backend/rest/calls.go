@@ -220,10 +220,11 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	if qdb.CheckACL(creator, qUser.Org, "r") {
 		nUser, dberr := session.FindUser(qUser.Name, qUser.Org)
 		if dberr != nil {
-			if qdb.EntryNotFound(err) {
+			if qdb.EntryNotFound(dberr) {
 				dberr = errors.New("Access error")
 			}
 			JSONError(w, dberr.Error(), http.StatusBadRequest)
+			return
 		}
 		nUser.ID = ""
 		nUser.Password = ""
