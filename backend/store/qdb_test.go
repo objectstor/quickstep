@@ -75,9 +75,27 @@ func TestDBUserInsertFind(t *testing.T) {
 	emptyuser := new(User)
 	err = session.InsertUser(emptyuser)
 	assert.Error(t, err)
+	err = session.DeleteUser("not_exists", "org")
+	assert.Error(t, err)
+
+	newUser, nerr = session.FindUser("super", "org")
+	assert.NotNil(t, newUser)
+	assert.Nil(t, nerr)
+	newUser.Name = "new_name" // ID stays so it should failed
+	err = session.InsertUser(newUser)
+	assert.Error(t, err) // duplicate key - same is is used
+	newUser.ID = bson.NewObjectId()
+	err = session.InsertUser(newUser)
+	assert.Error(t, err) // cannot change ID on existing document
+	newUser.ID = "BAD ID"
+	err = session.InsertUser(newUser) // same story as above
+	assert.Error(t, err)
+
 	if session != nil {
 		session.mgoSession = nil
 		err = session.InsertUser(emptyuser)
 		assert.Error(t, err)
 	}
+	err = session.DeleteUser("not_exists", "org")
+	assert.Error(t, err)
 }
