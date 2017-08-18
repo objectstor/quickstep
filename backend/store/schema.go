@@ -21,11 +21,11 @@ type ACLPerm struct {
 
 /*User - user schema */
 type User struct {
-	ID       bson.ObjectId `json:"id" bson:"_id"`
+	ID       bson.ObjectId `json:"id,omitempty" bson:"_id"`
 	Name     string        `json:"name" bson:"name"`
-	Password string        `json:"password" bson:"password"`
+	Password string        `json:"password,omitempty" bson:"password"`
 	Org      string        `json: "org" bson:"org"`
-	ACL      []ACLPerm     `json: "acl" bson: "acl"`
+	ACL      []ACLPerm     `json: "acl,omitempty" bson: "acl"`
 }
 
 /*Tokens - token schema */
@@ -64,7 +64,7 @@ func CheckACL(u *User, domain string, perm string) bool {
 	var havePerm bool
 	havePerm = false
 	for _, acl := range u.ACL {
-		if strings.HasSuffix(acl.Domain, domain) {
+		if strings.HasSuffix(domain, acl.Domain) {
 			for _, sPerm := range strings.Split(strings.ToLower(perm), "") {
 				switch sPerm {
 				case "c":

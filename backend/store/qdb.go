@@ -60,11 +60,11 @@ func (s *QSession) New() *QSession {
 }
 
 //FindUser - user with specific Name
-func (s *QSession) FindUser(name string) (*User, error) {
+func (s *QSession) FindUser(name string, org string) (*User, error) {
 	if s != nil && s.mgoSession != nil && len(name) > 0 {
 		c := s.mgoSession.DB("store").C("users")
 		result := User{}
-		err := c.Find(bson.M{"name": name}).One(&result)
+		err := c.Find(bson.M{"name": name, "org": org}).One(&result)
 		if err != nil {
 			return nil, err
 		}
@@ -76,16 +76,46 @@ func (s *QSession) FindUser(name string) (*User, error) {
 
 //InsertUser - user with specific Name
 func (s *QSession) InsertUser(user *User) error {
+	if len(user.Name) == 0 {
+		return errors.New("user name can't be empty")
+	}
 	if s != nil && s.mgoSession != nil {
 		c := s.mgoSession.DB("store").C("users")
-		err := c.Insert(user)
+		if !user.ID.Valid() {
+			user.ID = bson.NewObjectId()
+		}
+		err := c.Update(bson.M{"name": user.Name, "org": user.Org}, user)
 		if err != nil {
+			if EntryNotFound(err) {
+				err := c.Insert(user)
+				if err != nil {
+					return err
+				}
+				return nil
+			}
 			return err
 		}
 		return nil
 	}
 	// do mysql when supported
 	return errors.New("session empty or unsupported engine")
+}
+
+//DeleteUser - delete user with specific name
+func (s *QSession) DeleteUser(userName string, org string) error {
+
+	if len(userName) == 0 {
+		return errors.New("User name can't be null")
+	}
+	if s != nil && s.mgoSession != nil {
+		c := s.mgoSession.DB("store").C("users")
+		err := c.Remove(bson.M{"name": userName, "org": org})
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+	return errors.New("nil session")
 }
 
 func (q *Qdb) openMongo() (*QSession, error) {

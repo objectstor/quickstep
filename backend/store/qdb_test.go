@@ -55,16 +55,22 @@ func TestDBUserInsertFind(t *testing.T) {
 	user.Password = "password"
 	user.ACL = append(user.ACL, *acl)
 	user.Org = "org"
+	_, err = session.FindUser("super", "org")
+	if err == nil {
+		err = session.DeleteUser("super", "org")
+		assert.Nil(t, err)
+	}
+	assert.Error(t, session.DeleteUser("", ""))
 	err = session.InsertUser(user)
 	assert.Nil(t, err)
-	newUser, nerr := session.FindUser("super")
+	newUser, nerr := session.FindUser("super", "org")
 	assert.NotNil(t, newUser)
 	assert.Nil(t, nerr)
 	assert.Equal(t, strings.Compare(user.Name, newUser.Name), 0)
-	_, dberr := session.FindUser("super_one")
+	_, dberr := session.FindUser("super_one", "org")
 	assert.Equal(t, EntryNotFound(dberr), true)
 	defer session.Close()
-	_, dberr = session.FindUser("")
+	_, dberr = session.FindUser("", "org")
 	assert.Error(t, dberr)
 	emptyuser := new(User)
 	err = session.InsertUser(emptyuser)

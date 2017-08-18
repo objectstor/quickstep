@@ -26,7 +26,7 @@ func (t tokenAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if strings.Compare(r.URL.String(), "/login") != 0 { // for all url except login
 		user, status = t.authenticate(r)
 		if status == false {
-			JsonError(w, "Auth Error", http.StatusForbidden)
+			JSONError(w, "Auth Error", http.StatusForbidden)
 			return
 		}
 	}

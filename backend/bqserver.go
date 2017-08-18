@@ -30,7 +30,7 @@ func CheckOrCreateSuper(password string, s *qdb.QSession, minPasswdLen int) erro
 		return errors.New("db session error")
 	}
 	defer s.Close()
-	_, err := s.FindUser("system")
+	_, err := s.FindUser("system","")
 	if err != nil {
 		if qdb.EntryNotFound(err) {
 			if len(password) < minPasswdLen {

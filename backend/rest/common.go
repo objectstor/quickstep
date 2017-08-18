@@ -10,10 +10,17 @@ import (
 	"strings"
 )
 
-func JsonError(w http.ResponseWriter, message string, code int) {
+//JSONError send Json error code
+func JSONError(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(code)
 	fmt.Fprintf(w, "{error: %q}", message)
+}
+
+//JSONOk send Json string
+func JSONOk(w http.ResponseWriter, message string) {
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintf(w, "{message: %q}", message)
 }
 
 /*GetDbSessionFromContext retrive db session from context */
@@ -37,11 +44,11 @@ func GetUserFromContext(r *http.Request) string {
 //ValidUserAndSession - validat database and user ( true ok)
 func ValidUserAndSession(s *qdb.QSession, u string, w http.ResponseWriter) bool {
 	if s == nil {
-		JsonError(w, "database error", http.StatusNotAcceptable)
+		JSONError(w, "database error", http.StatusNotAcceptable)
 		return false
 	}
 	if len(u) == 0 {
-		JsonError(w, "auth context error", http.StatusForbidden)
+		JSONError(w, "auth context error", http.StatusForbidden)
 		return false
 	}
 	return true

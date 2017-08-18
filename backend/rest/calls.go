@@ -5,6 +5,7 @@ all rest calls
 */
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"quickstep/backend/store"
@@ -31,7 +32,7 @@ type UserAuth struct {
 func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s == nil {
-			JsonError(w, "database not connected ", http.StatusInternalServerError)
+			JSONError(w, "database not connected ", http.StatusInternalServerError)
 			return
 		}
 		session := s.New()
@@ -40,17 +41,17 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 		decoder := json.NewDecoder(r.Body)
 		err := decoder.Decode(&userAuth)
 		if err != nil {
-			JsonError(w, "Auth error", http.StatusForbidden)
+			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
 		if len(userAuth.Name) == 0 || len(userAuth.Password) == 0 {
-			JsonError(w, "Auth error", http.StatusForbidden)
+			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
 		// get user
-		user, err := session.FindUser(userAuth.Name)
+		user, err := session.FindUser(userAuth.Name, userAuth.Org)
 		if err != nil {
-			JsonError(w, "Auth error", http.StatusForbidden)
+			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
 		if user.Name == userAuth.Name && user.Password == userAuth.Password {
@@ -68,7 +69,7 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 			tokenString, err := token.SignedString(s.SigningKey)
 			if err != nil {
-				JsonError(w, "Auth error", http.StatusInternalServerError)
+				JSONError(w, "Auth error", http.StatusInternalServerError)
 				return
 			}
 			w.Header().Set("Content-Type", "application/json")
@@ -76,7 +77,7 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			fmt.Fprintf(w, "{\"token\": \"%s\"}", tokenString)
 		} else {
-			JsonError(w, "Auth error", http.StatusForbidden)
+			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
 	}
@@ -99,7 +100,7 @@ func getStat(w http.ResponseWriter, r *http.Request) {
 }
 
 func createUser(w http.ResponseWriter, r *http.Request) {
-	var dbUser qdb.User
+	var qUser qdb.User
 	httpUser := pat.Param(r, "name")
 	session := GetDbSessionFromContext(r)
 	contextUserString := GetUserFromContext(r)
@@ -108,29 +109,64 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
 	if err != nil {
-		JsonError(w, "Context error ", http.StatusBadRequest)
+		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
 
 	// let's decode body
 	decoder := json.NewDecoder(r.Body)
-	err = decoder.Decode(&dbUser)
+	err = decoder.Decode(&qUser)
 	if err != nil {
-		JsonError(w, "Auth error", http.StatusForbidden)
+		JSONError(w, "Content error", http.StatusBadRequest)
 		return
 	}
-	if dbUser.Name != httpUser {
-		JsonError(w, "Syntax error", http.StatusBadRequest)
+	if qUser.Name != httpUser {
+		JSONError(w, "Syntax error", http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("createUser() User.Name: %s User.Org: %s, by token user: \"%s\" org: %s\n", dbUser.Name, dbUser.Org, contextUser, contextOrg)
-	if len(dbUser.Org) == 0 {
-		fmt.Println("failed\n")
+	if len(qUser.Org) == 0 {
+		JSONError(w, "org can't be empty", http.StatusBadRequest)
+		return
 	}
+	creator, dberr := session.FindUser(contextUser, contextOrg)
+	if dberr != nil {
+		JSONError(w, dberr.Error(), http.StatusBadRequest)
+		return
+	}
+	// we need to know if user exists and is hould be modified
+	// or we should create new One
+	nUser, dberr := session.FindUser(qUser.Name, qUser.Org)
+	if dberr != nil {
+		if qdb.EntryNotFound(dberr) {
+			dberr = errors.New("bad permissions")
+			if qdb.CheckACL(creator, qUser.Org, "c") {
+				dberr = session.InsertUser(&qUser)
+				if dberr == nil {
+					JSONOk(w, "Created")
+					return
+				}
+			}
+		}
+		JSONError(w, dberr.Error(), http.StatusBadRequest)
+		return
+	}
+	// create
+	dberr = errors.New("bad permissions")
+	if qdb.CheckACL(creator, qUser.Org, "u") {
+		qUser.ID = nUser.ID
+		dberr = session.InsertUser(&qUser)
+		if dberr == nil {
+			JSONOk(w, "Updated")
+			return
+		}
+	}
+	JSONError(w, dberr.Error(), http.StatusBadRequest)
+	return
 	// get antry from db and check if we can do something within domain
 }
 
 func getUser(w http.ResponseWriter, r *http.Request) {
+	var qUser qdb.User
 	session := GetDbSessionFromContext(r)
 	contextUserString := GetUserFromContext(r)
 	httpUser := pat.Param(r, "name")
@@ -139,10 +175,68 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	}
 	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
 	if err != nil {
-		JsonError(w, "Syntax error", http.StatusBadRequest)
+		JSONError(w, "Syntax error", http.StatusBadRequest)
+		return
+	}
+	//body zero we can get info about ourself
+	if r.ContentLength == 0 {
+		if httpUser == contextUser {
+			nUser, err := session.FindUser(contextUser, contextOrg)
+			if err != nil {
+				if qdb.EntryNotFound(err) {
+					err = errors.New("Auth error")
+				}
+				JSONError(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			nUser.Password = "" // remove password
+			nUser.ID = ""       // remove ID
+			j, err := json.Marshal(nUser)
+			if err != nil {
+				JSONError(w, err.Error(), http.StatusForbidden)
+				return
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Location", r.URL.Path)
+			fmt.Fprintf(w, "%s", string(j))
+			return
+		}
+		JSONError(w, "Auth error", http.StatusForbidden)
+	}
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&qUser)
+	if err != nil {
+		JSONError(w, "Syntax error", http.StatusBadRequest)
+		return
+	}
+
+	creator, dberr := session.FindUser(contextUser, contextOrg)
+	if dberr != nil {
+		JSONError(w, dberr.Error(), http.StatusBadRequest)
 		return
 	}
 	fmt.Printf("getUser() User.Name: %s, by token user: \"%s\" org: %s\n", httpUser, contextUser, contextOrg)
-	// we should check if in body other domain is not specified
-	// if so we should check if we have access to that domain
+	fmt.Println(qUser)
+	if qdb.CheckACL(creator, qUser.Org, "r") {
+		nUser, dberr := session.FindUser(qUser.Name, qUser.Org)
+		if dberr != nil {
+			if qdb.EntryNotFound(err) {
+				dberr = errors.New("Auth error")
+			}
+			JSONError(w, dberr.Error(), http.StatusForbidden)
+		}
+		nUser.ID = ""
+		nUser.Password = ""
+		j, err := json.Marshal(nUser)
+		if err != nil {
+			JSONError(w, err.Error(), http.StatusForbidden)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Location", r.URL.Path)
+		fmt.Fprintf(w, "%s", string(j))
+		return
+	}
+	JSONError(w, "Auth error", http.StatusBadRequest)
 }
