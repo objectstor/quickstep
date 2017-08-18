@@ -202,6 +202,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		JSONError(w, "Access error", http.StatusForbidden)
+		return
 	}
 
 	decoder := json.NewDecoder(r.Body)

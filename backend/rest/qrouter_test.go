@@ -399,3 +399,163 @@ func TestCreateGetUser(t *testing.T) {
 	//try to list for both in both domains one should faile
 	// create user for both in both doamins - one should fail
 }
+
+func TestCreateUserOther(t *testing.T) {
+	server, superToken, err := authAndGetToken("super", "password")
+	assert.Nil(t, err)
+	client := &http.Client{}
+	defer server.Close()
+	userURL := fmt.Sprintf("%s/user/admin", server.URL)
+	req, _ := http.NewRequest("POST", userURL, bytes.NewBufferString("BUMMER"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err := client.Do(req)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
+	qUser := new(qdb.User)
+	qUser.Name = "someUser"
+	qUser.Org = ""
+	jsonBytes, err := json.Marshal(qUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
+	qUser.Name = "admin"
+	jsonBytes, err = json.Marshal(qUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
+	db := new(qdb.Qdb)
+	db.Type = "mongodb"
+	db.Timeout = time.Second * 10
+	db.URL = "localhost"
+	session, err := db.Open()
+	assert.Nil(t, err)
+	bacl := qdb.CreateACL("blah.org", "crud")
+	blahOrgUser := new(qdb.User)
+	blahOrgUser.Name = "admin"
+	blahOrgUser.Password = "password"
+	blahOrgUser.Org = "blah.org"
+	blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
+	err = session.DeleteUser(blahOrgUser.Name, blahOrgUser.Org)
+	assert.Nil(t, err)
+	jsonBytes, err = json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // ok
+
+	blahOrgUser, err = session.FindUser(blahOrgUser.Name, blahOrgUser.Org)
+	bacl = qdb.CreateACL("blah.org", "rd") // we have now just delete and read access
+	blahOrgUser.ACL[0] = *bacl             // can create modify list users in blah domain
+	err = session.InsertUser(blahOrgUser)
+	assert.Nil(t, err)
+	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
+	assert.Nil(t, err)
+
+	// create oither user name
+	otherUserURL := fmt.Sprintf("%s/user/nuser", server.URL)
+	blahOrgUser.Name = "nuser"
+	jsonBytes, err = json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+	//try to update - it should failed because acl and we are using blah token
+	req, _ = http.NewRequest("POST", otherUserURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", blahToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
+
+	// now get back creation flag for blah admin
+	blahOrgUser.Name = "admin"
+	bacl = qdb.CreateACL("blah.org", "crud")
+	blahOrgUser.ACL[0] = *bacl
+	jsonBytes, err = json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	// use super token - so blah admin update should be fine
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // ok
+	//try again this should be fine blah admin have proper crud permission
+
+	//create nuser with ru permission for blah.domain
+	blahOrgUser.ID = "" // remove admin ID
+	blahOrgUser.Name = "nuser"
+	bacl = qdb.CreateACL("blah.org", "ru")
+	blahOrgUser.ACL[0] = *bacl
+	jsonBytes, err = json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("POST", otherUserURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", blahToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // ok
+
+	//assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
+
+}
+
+func TestGetUserOther(t *testing.T) {
+	server, superToken, err := authAndGetToken("super", "password")
+	assert.Nil(t, err)
+	client := &http.Client{}
+	defer server.Close()
+	userURL := fmt.Sprintf("%s/user/admin", server.URL)
+	req, _ := http.NewRequest("GET", userURL, bytes.NewBufferString("BUMMER"))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err := client.Do(req)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth fail
+	qUser := new(qdb.User)
+	qUser.Name = "someUser"
+	qUser.Org = ""
+	jsonBytes, err := json.Marshal(qUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("GET", userURL, bytes.NewBuffer(jsonBytes))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode) // auth fail
+
+	db := new(qdb.Qdb)
+	db.Type = "mongodb"
+	db.Timeout = time.Second * 10
+	db.URL = "localhost"
+	session, err := db.Open()
+	assert.Nil(t, err)
+	//bacl := qdb.CreateACL("blah.org", "crud")
+	blahOrgUser := new(qdb.User)
+	blahOrgUser.Name = "nuser"
+	blahOrgUser.Password = "password"
+	blahOrgUser.Org = "blah.org"
+	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
+	assert.Nil(t, err)
+
+	//blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
+	err = session.DeleteUser(blahOrgUser.Name, blahOrgUser.Org)
+	assert.Nil(t, err)
+	jsonBytes, err = json.Marshal(blahOrgUser)
+	assert.Nil(t, err)
+
+	otherUserURL := fmt.Sprintf("%s/user/nuser", server.URL)
+	req, _ = http.NewRequest("GET", otherUserURL, bytes.NewBufferString(""))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", blahToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode) // auth fail
+
+	req, _ = http.NewRequest("GET", otherUserURL, bytes.NewBufferString(""))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode) // auth fail
+	assert.Nil(t, session.InsertUser(blahOrgUser))
+
+}
