@@ -184,7 +184,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			nUser, err := session.FindUser(contextUser, contextOrg)
 			if err != nil {
 				if qdb.EntryNotFound(err) {
-					err = errors.New("Auth error")
+					err = errors.New("Access error")
 				}
 				JSONError(w, err.Error(), http.StatusForbidden)
 				return
@@ -201,7 +201,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			fmt.Fprintf(w, "%s", string(j))
 			return
 		}
-		JSONError(w, "Auth error", http.StatusForbidden)
+		JSONError(w, "Access error", http.StatusForbidden)
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -216,15 +216,13 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, dberr.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Printf("getUser() User.Name: %s, by token user: \"%s\" org: %s\n", httpUser, contextUser, contextOrg)
-	fmt.Println(qUser)
 	if qdb.CheckACL(creator, qUser.Org, "r") {
 		nUser, dberr := session.FindUser(qUser.Name, qUser.Org)
 		if dberr != nil {
 			if qdb.EntryNotFound(err) {
-				dberr = errors.New("Auth error")
+				dberr = errors.New("Access error")
 			}
-			JSONError(w, dberr.Error(), http.StatusForbidden)
+			JSONError(w, dberr.Error(), http.StatusBadRequest)
 		}
 		nUser.ID = ""
 		nUser.Password = ""
@@ -238,5 +236,5 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "%s", string(j))
 		return
 	}
-	JSONError(w, "Auth error", http.StatusBadRequest)
+	JSONError(w, "Access error", http.StatusForbidden)
 }

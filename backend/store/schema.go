@@ -77,8 +77,8 @@ func CheckACL(u *User, domain string, perm string) bool {
 					havePerm = acl.Delete
 				}
 			}
+			break
 		}
-		break
 	}
 	return havePerm
 }

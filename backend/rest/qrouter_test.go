@@ -324,8 +324,6 @@ func TestCreateGetUser(t *testing.T) {
 	assert.Nil(t, err)
 	fooToken, err := GetToken(server, fooOrgUser.Name, fooOrgUser.Org, fooOrgUser.Password)
 	assert.Nil(t, err)
-	fmt.Println(blahToken.Token)
-	fmt.Println(fooToken.Token)
 	// do get for BLAH on blah.org an foo.org domains
 	qUser := new(qdb.User)
 	qUser.Name = blahOrgUser.Name
@@ -339,19 +337,63 @@ func TestCreateGetUser(t *testing.T) {
 	req.Header.Set("X-Golden-Ticket", blahToken.Token)
 	resp, err = client.Do(req)
 	body, _ = ioutil.ReadAll(resp.Body)
-	verBlahUser := new(qdb.User)
-	assert.Nil(t, json.Unmarshal(body, verBlahUser))
-	assert.Equal(t, blahOrgUser.Name, verBlahUser.Name)
-	assert.Equal(t, blahOrgUser.Org, verBlahUser.Org)
-	resp.Body.Close()
+	verUser := new(qdb.User)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+	assert.Nil(t, json.Unmarshal(body, verUser))
+	assert.Equal(t, blahOrgUser.Name, verUser.Name)
+	assert.Equal(t, blahOrgUser.Org, verUser.Org)
+	resp.Body.Close()
 
 	req, _ = http.NewRequest("GET", userURL, bytes.NewBuffer(fooJSON))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", blahToken.Token)
 	resp, err = client.Do(req)
 	body, _ = ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+	assert.Nil(t, json.Unmarshal(body, verUser))
+	assert.Equal(t, blahOrgUser.Name, verUser.Name)
+	assert.Equal(t, blahOrgUser.Org, verUser.Org)
+	resp.Body.Close()
+	//user blah  try get foo domain - this should fail
+	qUser.Name = fooOrgUser.Name
+	qUser.Org = fooOrgUser.Org
+	fooJSON, err = json.Marshal(qUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("GET", userURL, bytes.NewBuffer(fooJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", blahToken.Token)
+	resp, err = client.Do(req)
+	assert.Equal(t, http.StatusForbidden, resp.StatusCode) //failed - OK have no access to that domain
+	// do the same with foo user
+
+	qUser.Name = fooOrgUser.Name
+	qUser.Org = fooOrgUser.Org
+	fooJSON, err = json.Marshal(qUser)
+
+	req, _ = http.NewRequest("GET", userURL, bytes.NewBuffer(fooJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", fooToken.Token) // auth as foo user
+	resp, err = client.Do(req)
+	body, _ = ioutil.ReadAll(resp.Body)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
+	assert.Nil(t, json.Unmarshal(body, verUser))
+	assert.Equal(t, fooOrgUser.Name, verUser.Name)
+	assert.Equal(t, fooOrgUser.Org, verUser.Org)
+	resp.Body.Close()
+	//user foo try get blah domain - this should succeed
+	qUser.Name = blahOrgUser.Name
+	qUser.Org = blahOrgUser.Org
+	fooJSON, err = json.Marshal(qUser)
+	assert.Nil(t, err)
+	req, _ = http.NewRequest("GET", userURL, bytes.NewBuffer(fooJSON))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", fooToken.Token)
+	resp, err = client.Do(req)
+	body, _ = ioutil.ReadAll(resp.Body)
+	assert.Equal(t, http.StatusOK, resp.StatusCode) //failed - OK have no access to that domain
+	assert.Nil(t, json.Unmarshal(body, verUser))
+	assert.Equal(t, blahOrgUser.Name, verUser.Name)
+	assert.Equal(t, blahOrgUser.Org, verUser.Org)
 	resp.Body.Close()
 
 	//try to list for both in both domains one should faile
