@@ -579,3 +579,22 @@ func TestGetUserOther(t *testing.T) {
 	assert.Nil(t, session.InsertUser(blahOrgUser))
 
 }
+
+func TestStat(t *testing.T) {
+	server, superToken, err := authAndGetToken("super", "password")
+	assert.Nil(t, err)
+	client := &http.Client{}
+	defer server.Close()
+	// bad json ok token
+	statURL := fmt.Sprintf("%s/stat", server.URL)
+	req, _ := http.NewRequest("GET", statURL, bytes.NewBufferString(""))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	body, _ := ioutil.ReadAll(resp.Body)
+	assert.True(t, len(string(body)) > 10)
+	resp.Body.Close()
+	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth fail
+
+}
