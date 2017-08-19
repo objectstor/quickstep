@@ -2,13 +2,10 @@ package qdb
 
 import (
 	"strings"
+	"time"
 
 	"gopkg.in/mgo.v2/bson"
 )
-
-/*Tasks - task schema */
-type Tasks struct {
-}
 
 //ACLPerm - acl's
 type ACLPerm struct {
@@ -28,8 +25,27 @@ type User struct {
 	ACL      []ACLPerm     `json: "acl,omitempty" bson: "acl"`
 }
 
-/*Tokens - token schema */
-type Tokens struct {
+/*Task - token schema */
+type Task struct {
+	ID               bson.ObjectId   `json:"id,omitempty" bson:"_id"`
+	ParentID         bson.ObjectId   `json:"parent_id,omitempty" bson:"parent_id"`
+	ChildID          []bson.ObjectId `json:"child_id,omitempty" bson:"child_id"`
+	Private          bool            `json:"private" bson:"private"`
+	Status           string          `json:"status" bson:"status"`
+	CreationTime     time.Time       `bson:"c_time" json:"c_time"`
+	DeadLineTime     time.Time       `bson:"d_time" json:"d_time"`
+	ModificationTime time.Time       `bson:"m_time" json:"m_time"`
+	Name             string          `bson:"name" json:"name"`
+	Description      []byte          `bson:"description" json:"description"`
+	Comments         []byte          `bson:"comments" json:"comments"`
+}
+
+/*UserTask  - user task*/
+type UserTask struct {
+	ID     bson.ObjectId `json:"id,omitempty" bson:"_id"`
+	UserID bson.ObjectId `json:"user_id" bson:"user_id"`
+	TaskID bson.ObjectId `json:"task_id" bson:"task_id"`
+	ACL    ACLPerm       `json: "acl" bson: "acl"`
 }
 
 /*SKeys - secure key schema */

@@ -17,6 +17,7 @@ import (
 	yaml "gopkg.in/yaml.v2"
 )
 
+//Config - server config
 type Config struct {
 	Name            string  `yaml: "name"`
 	Db              qdb.Qdb `yaml: "db"`
