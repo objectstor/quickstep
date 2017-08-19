@@ -1,6 +1,7 @@
 package qdb
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -98,4 +99,41 @@ func TestDBUserInsertFind(t *testing.T) {
 	}
 	err = session.DeleteUser("not_exists", "org")
 	assert.Error(t, err)
+}
+
+func TestCreateTask(t *testing.T) {
+	db := new(Qdb)
+	db.Type = "mongodb"
+	db.Timeout = time.Second * 10
+	db.URL = "localhost"
+	session, err := db.Open()
+	assert.Nil(t, err)
+	task := new(Task)
+	task.Private = false
+	task.Status = "NEW"
+	myTime := time.Now()
+	task.CreationTime = myTime
+	task.ModificationTime = myTime
+	task.DeadLineTime = time.Now().Add(time.Hour * 24 * 7)
+	task.Name = ""
+	_, err = session.InsertTask(task)
+	assert.Error(t, err)
+	task.Name = "new_task"
+	taskID, err := session.InsertTask(task)
+	assert.Nil(t, err)
+	fmt.Println(taskID)
+
+	/*
+		ParentID         bson.ObjectId   `json:"parent_id,omitempty" bson:"parent_id,omitempty"`
+		ChildID          []bson.ObjectId `json:"child_id,omitempty" bson:"child_id, omitempty"`
+		Private          bool            `json:"private" bson:"private"`
+		Status           string          `json:"status" bson:"status"`
+		CreationTime     time.Time       `bson:"c_time" json:"c_time"`
+		DeadLineTime     time.Time       `bson:"d_time" json:"d_time"`
+		ModificationTime time.Time       `bson:"m_time" json:"m_time"`
+		Name             string          `bson:"name" json:"name"`
+		Description      []byte          `bson:"description" json:"description"`
+		Comments         []byte          `bson:"comments" json:"comments"`
+	*/
+	defer db.Close()
 }

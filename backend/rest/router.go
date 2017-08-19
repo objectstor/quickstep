@@ -43,14 +43,10 @@ func (r *RServer) Enable() error {
 	r.Mux.HandleFunc(pat.Post("/user/:name"), createUser)
 	r.Mux.HandleFunc(pat.Get("/user/:name"), getUser)
 
-	r.Mux.HandleFunc(pat.Head("/task"), headTasks)
-	r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
-	r.Mux.HandleFunc(pat.Put("/task/:id"), putTask)
+	//r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
+	//r.Mux.HandleFunc(pat.Head("/task"), headTasks)
+	r.Mux.HandleFunc(pat.Put("/task"), putTask)
 
-	//mux.HandleFunc(pat.Get("/task"), getAllTasks(r.s, false))
-	//mux.HandleFunc(pat.Head("/task/:id"), getTaskById(r.s, true))
-	//mux.HandleFunc(pat.Get("/task/:id"), getTaskById(r.s, false))
-	//mux.HandleFunc(pat.Put("/task/:id"), storeTaskById(r.s))
 	useTokenAuth = false
 	for _, plugin := range strings.Split(r.plugins, ",") {
 		switch strings.ToLower(plugin) {

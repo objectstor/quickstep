@@ -9,13 +9,18 @@ import (
 	"fmt"
 	"net/http"
 	"quickstep/backend/store"
-
-	"goji.io/pat"
 )
 
 func createUser(w http.ResponseWriter, r *http.Request) {
 	var qUser qdb.User
-	httpUser := pat.Param(r, "name")
+	//TODO !!!! bug in ngoji fix in name is not set
+	//fmt.Println(a)r.RequestURI
+
+	httpUser, err := GetParamFromRequest(r, "name", "/user")
+	if err != nil {
+		JSONError(w, "Context error ", http.StatusBadRequest)
+		return
+	}
 	session := GetDbSessionFromContext(r)
 	contextUserString := GetUserFromContext(r)
 	if !ValidUserAndSession(session, contextUserString, w) {
@@ -83,7 +88,11 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	var qUser qdb.User
 	session := GetDbSessionFromContext(r)
 	contextUserString := GetUserFromContext(r)
-	httpUser := pat.Param(r, "name")
+	httpUser, err := GetParamFromRequest(r, "name", "/user")
+	if err != nil {
+		JSONError(w, "Context error ", http.StatusBadRequest)
+		return
+	}
 	if !ValidUserAndSession(session, contextUserString, w) {
 		return
 	}

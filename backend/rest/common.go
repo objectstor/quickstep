@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"quickstep/backend/store"
 	"strings"
+
+	"goji.io/pat"
 )
 
 //JSONError send Json error code
@@ -39,6 +41,25 @@ func GetUserFromContext(r *http.Request) string {
 		return session.(string)
 	}
 	return ""
+}
+
+/*GetIdFromContext retrive user id from context */
+func GetIdFromContext(r *http.Request) string {
+	session := r.Context().Value("user_id")
+	if session != nil {
+		return session.(string)
+	}
+	return ""
+}
+
+func GetParamFromRequest(r *http.Request, name string, suffix string) (string, error) {
+	path := r.RequestURI
+	if strings.HasSuffix(path, suffix) {
+		// we should have more than suffix
+		return "", errors.New("bad path")
+	}
+	value := pat.Param(r, name)
+	return value, nil
 }
 
 //ValidUserAndSession - validat database and user ( true ok)

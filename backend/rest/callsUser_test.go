@@ -126,15 +126,13 @@ func TestCreateGetUser(t *testing.T) {
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
 	resp, err = client.Do(req)
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Printf("blah %s\n", string(body))
+	//fmt.Printf("blah %s\n", string(body))
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
 
 	req, _ = http.NewRequest("POST", userURL, bytes.NewBuffer(fooJSON))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
 	resp, err = client.Do(req)
-	body, _ = ioutil.ReadAll(resp.Body)
-	fmt.Printf("foo %s\n", string(body))
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
 	// get token for both
 	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)

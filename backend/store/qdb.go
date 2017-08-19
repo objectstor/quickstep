@@ -118,6 +118,25 @@ func (s *QSession) DeleteUser(userName string, org string) error {
 	return errors.New("nil session")
 }
 
+//InsertTask - insert new task
+func (s *QSession) InsertTask(task *Task) (string, error) {
+	if s != nil && s.mgoSession != nil {
+		if len(task.Name) == 0 {
+			return "", errors.New("name empty")
+		}
+		c := s.mgoSession.DB("store").C("tasks")
+		if !task.ID.Valid() {
+			task.ID = bson.NewObjectId()
+		}
+		err := c.Insert(task)
+		if err != nil {
+			return "", err
+		}
+		return task.ID.Hex(), err
+	}
+	return "", errors.New("session empty or unsupported engine")
+}
+
 func (q *Qdb) openMongo() (*QSession, error) {
 	// open mongo db
 	var err error

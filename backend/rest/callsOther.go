@@ -17,7 +17,8 @@ import (
 
 //QuickStepUserClaims used by token
 type QuickStepUserClaims struct {
-	Owner string `json:"owner"`
+	Owner   string `json:"owner"`
+	OwnerID string `json: "id"`
 	jwt.StandardClaims
 }
 
@@ -59,6 +60,7 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			// Create the Claims
 			claims := QuickStepUserClaims{
 				owner, // this chould be user id
+				user.ID.Hex(),
 				jwt.StandardClaims{
 					ExpiresAt: time.Now().Add(time.Hour * 72).Unix(),
 					Issuer:    "quickStep", // this should be host most likelly
