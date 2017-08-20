@@ -42,7 +42,7 @@ except ImportError:
 
 GO_PATH = "/usr/local/go/bin"
 # dirs without go tests
-SKIP_TEST_LIST = ['/doc', '/tmp']
+SKIP_TEST_LIST = ['/doc', '/tmp', '/etc']
 
 def copy_and_overwrite(from_path, to_path):
     if os.path.exists(to_path):
@@ -90,7 +90,7 @@ class GoTests(object):
             self.workspace =  os.path.join(self.workspace, "src/quickstep")
             self._main_path = os.path.join(self.workspace, "backend")
             self.template_dir = os.path.join(self._main_path, "tmp")
-	   
+
         os.chdir(self._main_path)
         # get all dependencies
         if not self.check_databases():
@@ -129,7 +129,7 @@ class GoTests(object):
                 if not skip_entry:
                     all_dirs.append(entry)
 
-        return all_dirs
+        return all_dirs.reverse()
 
     @classmethod
     def _check_one_dir_for_test(cls, path):
