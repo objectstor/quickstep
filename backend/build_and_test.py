@@ -129,7 +129,7 @@ class GoTests(object):
                 if not skip_entry:
                     all_dirs.append(entry)
 
-        return all_dirs.reverse()
+        return all_dirs[::-1]
 
     @classmethod
     def _check_one_dir_for_test(cls, path):
