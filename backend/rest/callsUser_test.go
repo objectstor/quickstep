@@ -99,7 +99,7 @@ func TestCreateGetUser(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
 
-	bacl := qdb.CreateACL("blah.org", "crud")
+	bacl := qdb.CreateACL("","blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "admin"
 	blahOrgUser.Password = "password"
@@ -112,9 +112,9 @@ func TestCreateGetUser(t *testing.T) {
 	fooOrgUser.Name = "admin"
 	fooOrgUser.Password = "password"
 	fooOrgUser.Org = "foo.org"
-	facl := qdb.CreateACL("foo.org", "crud")
+	facl := qdb.CreateACL("", "foo.org", "crud")
 	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
-	facl = qdb.CreateACL("blah.org", "crud")
+	facl = qdb.CreateACL("", "blah.org", "crud")
 	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
 	fooJSON, err := json.Marshal(fooOrgUser)
 	assert.Nil(t, err)
@@ -253,7 +253,7 @@ func TestCreateUserOther(t *testing.T) {
 	db.URL = "localhost"
 	session, err := db.Open()
 	assert.Nil(t, err)
-	bacl := qdb.CreateACL("blah.org", "crud")
+	bacl := qdb.CreateACL("", "blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "admin"
 	blahOrgUser.Password = "password"
@@ -272,7 +272,7 @@ func TestCreateUserOther(t *testing.T) {
 
 	// change directly in db blah admin perm to rd
 	blahOrgUser, err = session.FindUser(blahOrgUser.Name, blahOrgUser.Org)
-	bacl = qdb.CreateACL("blah.org", "rd") // we have now just delete and read access
+	bacl = qdb.CreateACL("", "blah.org", "rd") // we have now just delete and read access
 	blahOrgUser.ACL[0] = *bacl             // can create modify list users in blah domain
 	err = session.InsertUser(blahOrgUser)
 	assert.Nil(t, err)
@@ -294,7 +294,7 @@ func TestCreateUserOther(t *testing.T) {
 
 	// now get back crud perm blah
 	blahOrgUser.Name = "admin"
-	bacl = qdb.CreateACL("blah.org", "crud")
+	bacl = qdb.CreateACL("", "blah.org", "crud")
 	blahOrgUser.ACL[0] = *bacl
 	jsonBytes, err = json.Marshal(blahOrgUser)
 	assert.Nil(t, err)
@@ -312,7 +312,7 @@ func TestCreateUserOther(t *testing.T) {
 	//create nuser with ru permission using blah admin ( now have proper permissions)
 	blahOrgUser.ID = "" // remove admin ID
 	blahOrgUser.Name = "nuser"
-	bacl = qdb.CreateACL("blah.org", "ru")
+	bacl = qdb.CreateACL("", "blah.org", "ru")
 	blahOrgUser.ACL[0] = *bacl
 	jsonBytes, err = json.Marshal(blahOrgUser)
 	assert.Nil(t, err)
@@ -353,7 +353,6 @@ func TestGetUserOther(t *testing.T) {
 	db.URL = "localhost"
 	session, err := db.Open()
 	assert.Nil(t, err)
-	//bacl := qdb.CreateACL("blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "nuser"
 	blahOrgUser.Password = "password"

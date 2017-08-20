@@ -4,10 +4,15 @@ package qrouter
 all rest calls
 */
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"quickstep/backend/store"
+
+	"gopkg.in/mgo.v2/bson"
 )
 
+//TODO add etag checking
 /*
 func headTasks(w http.ResponseWriter, r *http.Request) {
 	session := GetDbSessionFromContext(r)
@@ -45,10 +50,13 @@ func postTask(w http.ResponseWriter, r *http.Request) {
 
 }
 */
+
 func putTask(w http.ResponseWriter, r *http.Request) {
+	var task qdb.Task
+	var acl qdb.ACLPerm
 	session := GetDbSessionFromContext(r)
 	contextUserString := GetUserFromContext(r)
-	userID := GetIdFromContext(r)
+	userID := GetIDFromContext(r)
 	if !ValidUserAndSession(session, contextUserString, w) {
 		return
 	}
@@ -62,8 +70,46 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
-	acl := r.Header.Get("X-Task-ACL")
-	// check for acl
-	fmt.Fprintf(w, "%s %s %s acl:%s", contextUser, contextOrg, userID, acl)
+	aclString := r.Header.Get("X-Task-ACL")
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&task)
+	if err != nil {
+		JSONError(w, "Content error", http.StatusBadRequest)
+		return
+	}
+	err = ParseRestTask(&task)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
+		return
 
+	}
+	if len(aclString) > 0 {
+		//json.
+		err := json.Unmarshal([]byte(aclString), &acl)
+		if err != nil {
+			JSONError(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if len(acl.User) == 0 {
+			JSONError(w, "missing name", http.StatusBadRequest)
+			return
+
+		}
+	} else {
+		acl.User = contextUser
+		acl.Domain = contextOrg
+		acl.Create = true
+		acl.Read = true
+		acl.Update = true
+		acl.Delete = true
+	}
+	// check for acl
+	fmt.Fprintf(w, "%s %s %s acl:%v", contextUser, contextOrg, userID, acl)
+	// always create task.ID  as this is put
+	task.ID = bson.NewObjectId()
+	//TODO we should check parrentID abd check is if thet exists
+	//TODO store in db
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintf(w, "{taskid: %q}", task.ID.Hex())
+	return
 }

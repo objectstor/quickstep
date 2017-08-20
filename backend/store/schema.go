@@ -9,6 +9,7 @@ import (
 
 //ACLPerm - acl's
 type ACLPerm struct {
+	User   string `json: "user,omitempty" bson:"user"`
 	Domain string `json: "domain" bson: "domain"`
 	Create bool   `json: "create" bson: "create"`
 	Read   bool   `json: "read" bson: "create"`
@@ -42,8 +43,6 @@ type Task struct {
 
 /*UserTask  - user task*/
 type UserTask struct {
-	User   string  `json:"user" bson:"user"`
-	Org    string  `json:"org" bson:"org"`
 	TaskID string  `json:"task_id" bson:"task_id"`
 	ACL    ACLPerm `json: "acl" bson: "acl"`
 }
@@ -53,8 +52,11 @@ type SKeys struct {
 }
 
 //CreateACL - create acl with specyfic org and acl string
-func CreateACL(domain string, perm string) *ACLPerm {
+func CreateACL(user string, domain string, perm string) *ACLPerm {
 	acl := new(ACLPerm)
+	if len(user) > 0 {
+		acl.User = user
+	}
 	acl.Domain = domain
 	acl.Create = false
 	acl.Read = false
@@ -76,11 +78,22 @@ func CreateACL(domain string, perm string) *ACLPerm {
 }
 
 //CheckACL - check acl permission
-func CheckACL(u *User, domain string, perm string) bool {
+func CheckACL(u *User, user string, domain string, perm string) bool {
 	var havePerm bool
+	var proceed bool
 	havePerm = false
+	proceed = false
 	for _, acl := range u.ACL {
-		if strings.HasSuffix(domain, acl.Domain) {
+		if len(user) > 0 {
+			if strings.Compare(user, acl.User) == 0 && strings.Compare(domain, acl.Domain) == 0 {
+				proceed = true
+			}
+		} else {
+			if strings.HasSuffix(domain, acl.Domain) {
+				proceed = true
+			}
+		}
+		if proceed {
 			for _, sPerm := range strings.Split(strings.ToLower(perm), "") {
 				switch sPerm {
 				case "c":

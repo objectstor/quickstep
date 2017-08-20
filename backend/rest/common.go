@@ -8,8 +8,10 @@ import (
 	"net/http"
 	"quickstep/backend/store"
 	"strings"
+	"time"
 
 	"goji.io/pat"
+	"gopkg.in/mgo.v2/bson"
 )
 
 //JSONError send Json error code
@@ -43,8 +45,8 @@ func GetUserFromContext(r *http.Request) string {
 	return ""
 }
 
-/*GetIdFromContext retrive user id from context */
-func GetIdFromContext(r *http.Request) string {
+/*GetIDFromContext retrive user id from context */
+func GetIDFromContext(r *http.Request) string {
 	session := r.Context().Value("user_id")
 	if session != nil {
 		return session.(string)
@@ -52,6 +54,7 @@ func GetIdFromContext(r *http.Request) string {
 	return ""
 }
 
+//GetParamFromRequest get safe param from request
 func GetParamFromRequest(r *http.Request, name string, suffix string) (string, error) {
 	path := r.RequestURI
 	if strings.HasSuffix(path, suffix) {
@@ -85,4 +88,29 @@ func GetUserAndOrg(u string) (string, string, error) {
 		uo[1] = "SYSTEM"
 	}
 	return uo[0], uo[1], nil
+}
+
+//ParseRestTask parse task fill gaps when possible
+func ParseRestTask(t *qdb.Task) error {
+	if len(t.Name) == 0 {
+		return errors.New("Name can't be zero length")
+	}
+	if t.CreationTime.IsZero() {
+		t.CreationTime = time.Now()
+	}
+	if t.DeadLineTime.IsZero() || t.CreationTime.After(t.DeadLineTime) || t.CreationTime.Equal(t.DeadLineTime) {
+		return errors.New("bad time value")
+	}
+	if len(t.ParentID) > 0 {
+		if !bson.IsObjectIdHex(t.ParentID) {
+			return errors.New("wrong ID")
+		}
+	}
+	for _, childID := range t.ChildID {
+		if !bson.IsObjectIdHex(childID) {
+			return errors.New("wrong ID")
+		}
+	}
+	t.ModificationTime = time.Now()
+	return nil
 }

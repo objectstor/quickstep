@@ -58,7 +58,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	if dberr != nil {
 		if qdb.EntryNotFound(dberr) {
 			dberr = errors.New("bad permissions")
-			if qdb.CheckACL(creator, qUser.Org, "c") {
+			if qdb.CheckACL(creator,"" , qUser.Org, "c") {
 				dberr = session.InsertUser(&qUser)
 				if dberr == nil {
 					JSONOk(w, "Created")
@@ -71,7 +71,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	}
 	// create
 	dberr = errors.New("bad permissions")
-	if qdb.CheckACL(creator, qUser.Org, "u") {
+	if qdb.CheckACL(creator, "", qUser.Org, "u") {
 		qUser.ID = nUser.ID
 		dberr = session.InsertUser(&qUser)
 		if dberr == nil {
@@ -140,7 +140,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, dberr.Error(), http.StatusBadRequest)
 		return
 	}
-	if qdb.CheckACL(creator, qUser.Org, "r") {
+	if qdb.CheckACL(creator,"",  qUser.Org, "r") {
 		nUser, dberr := session.FindUser(qUser.Name, qUser.Org)
 		if dberr != nil {
 			if qdb.EntryNotFound(dberr) {

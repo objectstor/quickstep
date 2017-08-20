@@ -1,7 +1,6 @@
 package qdb
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -49,7 +48,7 @@ func TestDBUserInsertFind(t *testing.T) {
 	session, err := db.Open()
 	assert.Nil(t, err)
 	defer db.Close()
-	acl := CreateACL("org", "crud")
+	acl := CreateACL("", "org", "crud")
 	user := new(User)
 	user.ID = bson.NewObjectId()
 	user.Name = "super"
@@ -121,7 +120,7 @@ func TestCreateTask(t *testing.T) {
 	task.Name = "new_task"
 	taskID, err := session.InsertTask(task)
 	assert.Nil(t, err)
-	fmt.Println(taskID)
+	assert.True(t, bson.IsObjectIdHex(taskID))
 
 	/*
 		ParentID         bson.ObjectId   `json:"parent_id,omitempty" bson:"parent_id,omitempty"`
