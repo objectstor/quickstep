@@ -96,22 +96,25 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
-		acl.User = contextUser
-		acl.Domain = contextOrg
-		acl.Create = true
-		acl.Read = true
-		acl.Update = true
-		acl.Delete = true
+		acl = *qdb.CreateACL(contextUser, contextOrg, "crud")
 	}
-	// check for acl
-	// always create task.ID  as this is put
+	// always create task.ID  as this is put even when task name are the same
+	// we can have 2 tasks with the same name
 	task.ID = bson.NewObjectId()
 	//TODO we should check parrentID abd check is if thet exists
 	//TODO store in db
 	// create UserTask entry
-	fmt.Fprintf(w, "%s %s %s acl:%v", contextUser, contextOrg, userID, acl)
-
+	//fmt.Fprintf(w, "%s %s %s acl:%v", contextUser, contextOrg, userID, acl)
+	taskID, err := session.InsertTask(&task)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if task.ID.Hex() != taskID {
+		JSONError(w, "task id error", http.StatusBadRequest)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	fmt.Fprintf(w, "{taskid: %q}", task.ID.Hex())
+	fmt.Fprintf(w, "{\"taskid\": %q}", task.ID.Hex())
 	return
 }

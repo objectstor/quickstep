@@ -19,8 +19,8 @@ import (
 
 /*Qdb - dtabase abstraction class */
 type Qdb struct {
-	Type    string `yaml: "type"`
-	URL     string `yaml: "url"`
+	Type    string `yaml:"type"`
+	URL     string `yaml:"url"`
 	Timeout time.Duration
 }
 
@@ -135,6 +135,23 @@ func (s *QSession) InsertTask(task *Task) (string, error) {
 		return task.ID.Hex(), err
 	}
 	return "", errors.New("session empty or unsupported engine")
+}
+
+//FindTask with specific id
+func (s *QSession) FindTask(ID string) (*Task, error) {
+	if s != nil && s.mgoSession != nil && len(ID) > 0 {
+		c := s.mgoSession.DB("store").C("tasks")
+		result := Task{}
+		bID := bson.ObjectIdHex(ID)
+		err := c.Find(bson.M{"_id": bID}).One(&result)
+		if err != nil {
+			return nil, err
+		}
+		return &result, nil
+	}
+	// do mysql when supported
+	return nil, &mgo.QueryError{0, "Bad parameters or db not defined", false}
+
 }
 
 func (q *Qdb) openMongo() (*QSession, error) {

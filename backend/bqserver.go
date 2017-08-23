@@ -19,10 +19,10 @@ import (
 
 //Config - server config
 type Config struct {
-	Name            string  `yaml: "name"`
-	Db              qdb.Qdb `yaml: "db"`
-	RestPlugins     string  `yaml: "plugins"`
-	MinPasswdLength int     `yaml: "min_super_passwd"`
+	Name            string  `yaml:"name"`
+	Db              qdb.Qdb `yaml:"db"`
+	RestPlugins     string  `yaml:"plugins"`
+	MinPasswdLength int     `yaml:"min_super_passwd"`
 }
 
 //CheckOrCreateSuper - set super user or create new one

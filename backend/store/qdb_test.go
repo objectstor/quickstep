@@ -85,8 +85,13 @@ func TestDBUserInsertFind(t *testing.T) {
 	err = session.InsertUser(newUser)
 	assert.Error(t, err) // duplicate key - same is is used
 	newUser.ID = bson.NewObjectId()
+	_, nerr = session.FindUser("new_name", "org")
 	err = session.InsertUser(newUser)
-	assert.Error(t, err) // cannot change ID on existing document
+	if nerr != nil {
+		assert.Nil(t, err)
+	} else {
+		assert.Error(t, err) // cannot change ID on existing document
+	}
 	newUser.ID = "BAD ID"
 	err = session.InsertUser(newUser) // same story as above
 	assert.Error(t, err)
@@ -121,6 +126,10 @@ func TestCreateTask(t *testing.T) {
 	taskID, err := session.InsertTask(task)
 	assert.Nil(t, err)
 	assert.True(t, bson.IsObjectIdHex(taskID))
+
+	sameTask, err := session.FindTask(taskID)
+	assert.Nil(t, err)
+	assert.Equal(t, taskID, sameTask.ID.Hex())
 
 	/*
 		ParentID         bson.ObjectId   `json:"parent_id,omitempty" bson:"parent_id,omitempty"`

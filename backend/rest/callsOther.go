@@ -18,7 +18,7 @@ import (
 //QuickStepUserClaims used by token
 type QuickStepUserClaims struct {
 	Owner   string `json:"owner"`
-	OwnerID string `json: "id"`
+	OwnerID string `json:"id"`
 	jwt.StandardClaims
 }
 
@@ -26,7 +26,7 @@ type QuickStepUserClaims struct {
 type UserAuth struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
-	Org      string `json: "org"` // additional org string ex. shop.com, research_group
+	Org      string `json:"org"` // additional org string ex. shop.com, research_group
 }
 
 func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {

@@ -9,12 +9,12 @@ import (
 
 //ACLPerm - acl's
 type ACLPerm struct {
-	User   string `json: "user,omitempty" bson:"user"`
-	Domain string `json: "domain" bson: "domain"`
-	Create bool   `json: "create" bson: "create"`
-	Read   bool   `json: "read" bson: "create"`
-	Update bool   `json: "update" bson: "create"`
-	Delete bool   `json "delete bson:"create"`
+	User   string `json:"user,omitempty" bson:"user"`
+	Domain string `json:"domain" bson:"domain"`
+	Create bool   `json:"create" bson:"create"`
+	Read   bool   `json:"read" bson:"read"`
+	Update bool   `json:"update" bson:"update"`
+    Delete bool   `json:"delete" bson:"delete"`
 }
 
 /*User - user schema */
@@ -22,8 +22,8 @@ type User struct {
 	ID       bson.ObjectId `json:"id,omitempty" bson:"_id"`
 	Name     string        `json:"name" bson:"name"`
 	Password string        `json:"password,omitempty" bson:"password"`
-	Org      string        `json: "org" bson:"org"`
-	ACL      []ACLPerm     `json: "acl,omitempty" bson: "acl"`
+	Org      string        `json:"org" bson:"org"`
+	ACL      []ACLPerm     `json:"acl,omitempty" bson:"acl"`
 }
 
 /*Task - token schema */
@@ -44,7 +44,7 @@ type Task struct {
 /*UserTask  - user task*/
 type UserTask struct {
 	TaskID string  `json:"task_id" bson:"task_id"`
-	ACL    ACLPerm `json: "acl" bson: "acl"`
+	ACL    ACLPerm `json:"acl" bson:"acl"`
 }
 
 /*SKeys - secure key schema */

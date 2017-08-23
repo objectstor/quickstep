@@ -14,7 +14,12 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/mgo.v2/bson"
 )
+
+type RespTask struct {
+	ID string `json:"taskid"`
+}
 
 func TestTask(t *testing.T) {
 	var task qdb.Task
@@ -94,7 +99,8 @@ func TestTask(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth succeed
 
 	//ok
-	task.Name = "blah_one"
+	tm := time.Now()
+	task.Name = fmt.Sprintf("blah_one_%s", tm.Format("20060102150405"))
 	task.DeadLineTime = task.DeadLineTime.Add(time.Hour + 24)
 	task.CreationTime = time.Now()
 	jsonStr, err = json.Marshal(task)
@@ -122,7 +128,8 @@ func TestTask(t *testing.T) {
 	req.Header.Set("X-Golden-Ticket", superToken.Token)
 	resp, err = client.Do(req)
 	assert.Nil(t, err)
-	assert.Equal(t, http.StatusBadRequest, resp.StatusCode) // auth succeed
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
 	// good acl
 	acl.User = "admin"
 	aclStr, err = json.Marshal(acl)
@@ -137,7 +144,10 @@ func TestTask(t *testing.T) {
 
 	// no acl
 	body, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(body))
+	resptask := new(RespTask)
+	err = json.Unmarshal(body, resptask)
+	assert.Nil(t, err)
 	resp.Body.Close()
+	assert.True(t, bson.IsObjectIdHex(resptask.ID))
 
 }
