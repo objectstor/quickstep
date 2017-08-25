@@ -150,4 +150,43 @@ func TestTask(t *testing.T) {
 	resp.Body.Close()
 	assert.True(t, bson.IsObjectIdHex(resptask.ID))
 
+	// bad parrent ID - not exists
+	ps := bson.NewObjectId()
+	task.ParentID = ps.Hex()
+	jsonStr, err = json.Marshal(task)
+	req, _ = http.NewRequest("PUT", taskURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("X-Task-ACL", string(aclStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+	// bad child - not exists
+
+	task.ParentID = ""
+	task.ChildID = append(task.ChildID, bson.NewObjectId().Hex())
+	jsonStr, err = json.Marshal(task)
+	req, _ = http.NewRequest("PUT", taskURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("X-Task-ACL", string(aclStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	// bad childID
+	task.ChildID[0] = "BLA"
+	jsonStr, err = json.Marshal(task)
+	req, _ = http.NewRequest("PUT", taskURL, bytes.NewBuffer(jsonStr))
+	req.Header.Set("X-Task-ACL", string(aclStr))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err = client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
+
+	//body, _ = ioutil.ReadAll(resp.Body)
+	//fmt.Println(string(body))
+	//resp.Body.Close()
+
 }

@@ -130,18 +130,9 @@ func TestCreateTask(t *testing.T) {
 	sameTask, err := session.FindTask(taskID)
 	assert.Nil(t, err)
 	assert.Equal(t, taskID, sameTask.ID.Hex())
-
-	/*
-		ParentID         bson.ObjectId   `json:"parent_id,omitempty" bson:"parent_id,omitempty"`
-		ChildID          []bson.ObjectId `json:"child_id,omitempty" bson:"child_id, omitempty"`
-		Private          bool            `json:"private" bson:"private"`
-		Status           string          `json:"status" bson:"status"`
-		CreationTime     time.Time       `bson:"c_time" json:"c_time"`
-		DeadLineTime     time.Time       `bson:"d_time" json:"d_time"`
-		ModificationTime time.Time       `bson:"m_time" json:"m_time"`
-		Name             string          `bson:"name" json:"name"`
-		Description      []byte          `bson:"description" json:"description"`
-		Comments         []byte          `bson:"comments" json:"comments"`
-	*/
+	notFoundID := bson.NewObjectId()
+	notFoundTask, err := session.FindTask(notFoundID.Hex())
+	assert.Error(t, err)
+	assert.Nil(t, notFoundTask)
 	defer db.Close()
 }

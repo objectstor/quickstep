@@ -61,6 +61,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	if !ValidUserAndSession(session, contextUserString, w) {
 		return
 	}
+	defer session.Close()
 	if len(userID) == 0 {
 		JSONError(w, "Context error ", http.StatusBadRequest)
 	}
@@ -101,19 +102,38 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	// always create task.ID  as this is put even when task name are the same
 	// we can have 2 tasks with the same name
 	task.ID = bson.NewObjectId()
-	//TODO we should check parrentID abd check is if thet exists
-	//TODO store in db
-	// create UserTask entry
-	//fmt.Fprintf(w, "%s %s %s acl:%v", contextUser, contextOrg, userID, acl)
+	// check user
+	if bson.IsObjectIdHex(task.ParentID) {
+		_, derr := session.FindTask(task.ParentID)
+		if derr != nil {
+			JSONError(w, derr.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	for _, childIDString := range task.ChildID {
+		if !bson.IsObjectIdHex(childIDString) {
+			JSONError(w, "bad ID", http.StatusBadRequest)
+			return
+		}
+		_, derr := session.FindTask(childIDString)
+		if derr != nil {
+			JSONError(w, derr.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
 	taskID, err := session.InsertTask(&task)
 	if err != nil {
 		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	if task.ID.Hex() != taskID {
+		// TODO delete task
 		JSONError(w, "task id error", http.StatusBadRequest)
 		return
 	}
+	// store user acl
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintf(w, "{\"taskid\": %q}", task.ID.Hex())
 	return
