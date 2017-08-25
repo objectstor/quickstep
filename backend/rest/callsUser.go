@@ -13,8 +13,6 @@ import (
 
 func createUser(w http.ResponseWriter, r *http.Request) {
 	var qUser qdb.User
-	//TODO !!!! bug in ngoji fix in name is not set
-	//fmt.Println(a)r.RequestURI
 
 	httpUser, err := GetParamFromRequest(r, "name", "/user")
 	if err != nil {

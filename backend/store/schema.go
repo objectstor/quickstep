@@ -14,7 +14,7 @@ type ACLPerm struct {
 	Create bool   `json:"create" bson:"create"`
 	Read   bool   `json:"read" bson:"read"`
 	Update bool   `json:"update" bson:"update"`
-    Delete bool   `json:"delete" bson:"delete"`
+	Delete bool   `json:"delete" bson:"delete"`
 }
 
 /*User - user schema */
@@ -43,6 +43,7 @@ type Task struct {
 
 /*UserTask  - user task*/
 type UserTask struct {
+	UserID string  `json: "user_id" bson:"user_id"`
 	TaskID string  `json:"task_id" bson:"task_id"`
 	ACL    ACLPerm `json:"acl" bson:"acl"`
 }

@@ -1,5 +1,7 @@
 package qrouter
 
+//TODO ! REDUCE number of quersied in PUT especially for
+// customized ACL
 /*
 all rest calls
 */
@@ -85,6 +87,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
+	UserTaskId := ""
 	if len(aclString) > 0 {
 		//json.
 		err := json.Unmarshal([]byte(aclString), &acl)
@@ -96,8 +99,15 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 			JSONError(w, "missing name", http.StatusBadRequest)
 			return
 		}
+		nUser, dberr := session.FindUser(acl.User, acl.Domain)
+		if dberr != nil {
+			JSONError(w, "user not found", http.StatusBadRequest)
+			return
+		}
+		UserTaskId = nUser.ID.Hex()
 	} else {
 		acl = *qdb.CreateACL(contextUser, contextOrg, "crud")
+		UserTaskId = userID
 	}
 	// always create task.ID  as this is put even when task name are the same
 	// we can have 2 tasks with the same name
@@ -133,7 +143,17 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, "task id error", http.StatusBadRequest)
 		return
 	}
-	// store user acl
+	// store user task
+	uTask := new(qdb.UserTask)
+	uTask.UserID = UserTaskId
+	uTask.TaskID = taskID
+	err = session.InsertUserTask(uTask)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
+		return
+		// TODO delete task
+	}
+
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintf(w, "{\"taskid\": %q}", task.ID.Hex())
 	return

@@ -1,6 +1,7 @@
 package qdb
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 	"time"
@@ -134,5 +135,43 @@ func TestCreateTask(t *testing.T) {
 	notFoundTask, err := session.FindTask(notFoundID.Hex())
 	assert.Error(t, err)
 	assert.Nil(t, notFoundTask)
+	defer db.Close()
+}
+
+func TestCreateUserTask(t *testing.T) {
+	db := new(Qdb)
+	db.Type = "mongodb"
+	db.Timeout = time.Second * 10
+	db.URL = "localhost"
+	session, err := db.Open()
+	assert.Nil(t, err)
+	uTask := new(UserTask)
+	uTask.TaskID = "nothing"
+	err = session.InsertUserTask(uTask)
+	assert.Error(t, err)
+
+	user, err := session.FindUser("super", "org")
+	assert.Nil(t, err)
+
+	// create new task
+	task := new(Task)
+	task.Private = false
+	task.Status = "NEW"
+	myTime := time.Now()
+	task.CreationTime = myTime
+	task.ModificationTime = myTime
+	task.DeadLineTime = time.Now().Add(time.Hour * 24 * 7)
+
+	task.Name = fmt.Sprintf("new_and_sweet_%s", time.Now().Format("20060102150405"))
+	taskID, err := session.InsertTask(task)
+	assert.Nil(t, err)
+
+	//complete task
+	uTask.TaskID = taskID
+	err = session.InsertUserTask(uTask)
+	assert.Error(t, err)
+	uTask.UserID = user.ID.Hex()
+	err = session.InsertUserTask(uTask)
+	assert.Nil(t, err)
 	defer db.Close()
 }

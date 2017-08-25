@@ -154,6 +154,31 @@ func (s *QSession) FindTask(ID string) (*Task, error) {
 
 }
 
+//InsertUserTask - insert User task permissions
+func (s *QSession) InsertUserTask(ut *UserTask) error {
+	if s != nil && s.mgoSession != nil {
+		if len(ut.TaskID) == 0 {
+			return errors.New("TaskId empty")
+		}
+		if len(ut.UserID) == 0 {
+			return errors.New("UserId empty")
+		}
+
+		if !bson.IsObjectIdHex(ut.TaskID) {
+			return errors.New("bad taskID")
+		}
+		if !bson.IsObjectIdHex(ut.UserID) {
+			return errors.New("bad userID")
+		}
+		// I'm not checking if taskId and UserId exists
+		// this should be done on higher level
+		c := s.mgoSession.DB("store").C("permissions")
+		err := c.Insert(ut)
+		return err
+	}
+	return &mgo.QueryError{0, "Bad parameters or db not defined", false}
+}
+
 func (q *Qdb) openMongo() (*QSession, error) {
 	// open mongo db
 	var err error
@@ -172,16 +197,16 @@ func indexMongo(s *mgo.Session) error {
 	// indexing
 	taskSession := s.Copy()
 	userSession := s.Copy()
-	tokenSession := s.Copy()
+	permSession := s.Copy()
 
 	defer taskSession.Close()
 	defer userSession.Close()
-	defer tokenSession.Close()
+	defer permSession.Close()
 	c := taskSession.DB("store").C("tasks")
 	indexTasks := mgo.Index{
-		Key:        []string{"idx"},
-		Unique:     true,
-		DropDups:   true,
+		Key:        []string{"name"},
+		Unique:     false,
+		DropDups:   false,
 		Background: true,
 		Sparse:     true,
 	}
@@ -191,9 +216,9 @@ func indexMongo(s *mgo.Session) error {
 	}
 	u := userSession.DB("store").C("users")
 	indexUsers := mgo.Index{
-		Key:        []string{"Name"},
-		Unique:     true,
-		DropDups:   true,
+		Key:        []string{"name"},
+		Unique:     false,
+		DropDups:   false,
 		Background: true,
 		Sparse:     true,
 	}
@@ -201,18 +226,31 @@ func indexMongo(s *mgo.Session) error {
 	if err != nil {
 		return err
 	}
-	t := tokenSession.DB("auth").C("token")
-	indexTokens := mgo.Index{
-		Key:        []string{"ID"},
-		Unique:     true,
-		DropDups:   true,
+	t := permSession.DB("store").C("permissions")
+	indexPermUsers := mgo.Index{
+		Key:        []string{"user_id"},
+		Unique:     false,
+		DropDups:   false,
 		Background: true,
 		Sparse:     true,
 	}
-	err = t.EnsureIndex(indexTokens)
+	err = t.EnsureIndex(indexPermUsers)
 	if err != nil {
 		return err
 	}
+
+	indexPermTask := mgo.Index{
+		Key:        []string{"task_id"},
+		Unique:     false,
+		DropDups:   false,
+		Background: true,
+		Sparse:     true,
+	}
+	err = t.EnsureIndex(indexPermTask)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
