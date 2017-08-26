@@ -173,5 +173,14 @@ func TestCreateUserTask(t *testing.T) {
 	uTask.UserID = user.ID.Hex()
 	err = session.InsertUserTask(uTask)
 	assert.Nil(t, err)
+
+	ret, dberr := session.FindUserTasks(uTask.UserID, uTask.TaskID)
+	assert.Nil(t, dberr)
+	assert.Equal(t, 1, len(ret))
+
+	ret, dberr = session.FindUserTasks(uTask.UserID, "")
+	assert.Nil(t, dberr)
+	assert.True(t, len(ret) > 0)
+
 	defer db.Close()
 }

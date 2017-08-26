@@ -179,6 +179,45 @@ func (s *QSession) InsertUserTask(ut *UserTask) error {
 	return &mgo.QueryError{0, "Bad parameters or db not defined", false}
 }
 
+//FindUserTasks return single or multiple tasks task
+// based on arguments  if only user is specified
+// return list of tasks
+// if user and task return single task
+func (s *QSession) FindUserTasks(UserID string, TaskID string) ([]UserTask, error) {
+	var results []UserTask
+	if s != nil && s.mgoSession != nil {
+		if len(UserID) == 0 && !bson.IsObjectIdHex(UserID) {
+			return results, errors.New("UserId empty")
+		}
+		c := s.mgoSession.DB("store").C("permissions")
+		ut := new(UserTask)
+		ut.UserID = UserID
+
+		if len(TaskID) > 0 {
+			//return single
+			//f body
+			if !bson.IsObjectIdHex(TaskID) {
+				return results, errors.New("TaskId incorrect")
+			}
+
+			ut.TaskID = TaskID
+			err := c.Find(ut).All(&results)
+			if err != nil {
+				return results, err
+			}
+			return results, nil
+		}
+		// return multi
+		err := c.Find(bson.M{"userid": UserID}).All(&results)
+		if err != nil {
+			return results, err
+		}
+		return results, nil
+
+	}
+	return results, &mgo.QueryError{0, "Bad parameters or db not defined", false}
+}
+
 func (q *Qdb) openMongo() (*QSession, error) {
 	// open mongo db
 	var err error

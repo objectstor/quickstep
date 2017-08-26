@@ -43,8 +43,8 @@ type Task struct {
 
 /*UserTask  - user task*/
 type UserTask struct {
-	UserID string  `json: "user_id" bson:"user_id"`
-	TaskID string  `json:"task_id" bson:"task_id"`
+	TaskID string  `json:"taskid" bson:"taskid"`
+	UserID string  `json: "userid" bson:"userid"`
 	ACL    ACLPerm `json:"acl" bson:"acl"`
 }
 

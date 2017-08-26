@@ -87,7 +87,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		return
 
 	}
-	UserTaskId := ""
+	UserTaskID := ""
 	if len(aclString) > 0 {
 		//json.
 		err := json.Unmarshal([]byte(aclString), &acl)
@@ -104,10 +104,10 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 			JSONError(w, "user not found", http.StatusBadRequest)
 			return
 		}
-		UserTaskId = nUser.ID.Hex()
+		UserTaskID = nUser.ID.Hex()
 	} else {
 		acl = *qdb.CreateACL(contextUser, contextOrg, "crud")
-		UserTaskId = userID
+		UserTaskID = userID
 	}
 	// always create task.ID  as this is put even when task name are the same
 	// we can have 2 tasks with the same name
@@ -145,7 +145,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	}
 	// store user task
 	uTask := new(qdb.UserTask)
-	uTask.UserID = UserTaskId
+	uTask.UserID = UserTaskID
 	uTask.TaskID = taskID
 	err = session.InsertUserTask(uTask)
 	if err != nil {
