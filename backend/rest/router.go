@@ -40,11 +40,13 @@ func (r *RServer) Enable() error {
 	r.Mux = goji.NewMux()
 	r.Mux.HandleFunc(pat.Post("/login"), doLogin(r.s))
 	r.Mux.HandleFunc(pat.Get("/stat"), getStat)
+
 	r.Mux.HandleFunc(pat.Post("/user/:name"), createUser)
 	r.Mux.HandleFunc(pat.Get("/user/:name"), getUser)
 
+	//r.Mux.Handle(pat.Get("/task/:id"), getTask)
 	//r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
-	//r.Mux.HandleFunc(pat.Head("/task"), headTasks)
+	r.Mux.HandleFunc(pat.Get("/task"), getTasksForUser)
 	r.Mux.HandleFunc(pat.Put("/task"), putTask)
 
 	useTokenAuth = false

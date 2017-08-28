@@ -190,3 +190,41 @@ func TestTask(t *testing.T) {
 	//resp.Body.Close()
 
 }
+
+func TestGetAllTasks(t *testing.T) {
+	var task qdb.Task
+	var jsonStr []byte
+	var tasks []qdb.Task
+	server, superToken, err := authAndGetToken("super", "password")
+	assert.Nil(t, err)
+	client := &http.Client{}
+	defer server.Close()
+	taskURL := fmt.Sprintf("%s/task", server.URL)
+	for i := 0; i < 10; i++ {
+		tm := time.Now()
+		task.Name = fmt.Sprintf("super_task_%s_%d", tm.Format("20060102150405"), i)
+		task.CreationTime = time.Now()
+		task.DeadLineTime = task.CreationTime.Add(time.Hour + 24)
+		jsonStr, err = json.Marshal(task)
+		assert.Nil(t, err)
+		req, _ := http.NewRequest("PUT", taskURL, bytes.NewBuffer(jsonStr))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Golden-Ticket", superToken.Token)
+		resp, err := client.Do(req)
+		assert.Nil(t, err)
+		assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	}
+
+	req, _ := http.NewRequest("GET", taskURL, bytes.NewBufferString(""))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", superToken.Token)
+	resp, err := client.Do(req)
+	assert.Nil(t, err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	decoder := json.NewDecoder(resp.Body)
+	assert.Nil(t, decoder.Decode(&tasks))
+	assert.True(t, len(tasks) > 10) // at lleast 10 + 1 from previous tests
+	resp.Body.Close()
+
+}

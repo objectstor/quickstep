@@ -16,21 +16,38 @@ import (
 
 //TODO add etag checking
 // TODO proces in bqserver which search and delete task witout owner
-/*
-func headTasks(w http.ResponseWriter, r *http.Request) {
+func getTasksForUser(w http.ResponseWriter, r *http.Request) {
 	session := GetDbSessionFromContext(r)
 	contextUserString := GetUserFromContext(r)
+	userID := GetIDFromContext(r)
 	if !ValidUserAndSession(session, contextUserString, w) {
 		return
 	}
-	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
-	if err != nil {
+	defer session.Close()
+	//contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
+	//if err != nil {
+	//	JSONError(w, "Context error ", http.StatusBadRequest)
+	//	return
+	//}
+	if len(userID) == 0 {
 		JSONError(w, "Context error ", http.StatusBadRequest)
+	}
+	// if header have data pick date if not pick all
+	result, err := session.FindUserTasks(userID, "")
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "%s %s", contextUser, contextOrg)
+	buff, err := json.Marshal(result)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Write(buff)
 }
 
+/*
 func postTask(w http.ResponseWriter, r *http.Request) {
 	taskID := pat.Param(r, "id")
 	taskID, err := GetParamFromRequest(r, "id", "/task")
