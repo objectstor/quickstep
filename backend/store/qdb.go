@@ -44,6 +44,7 @@ func (s *QSession) Close() {
 
 	if s != nil && s.mgoSession != nil {
 		s.mgoSession.Close()
+		s.mgoSession = nil
 	}
 }
 
@@ -154,6 +155,22 @@ func (s *QSession) FindTask(ID string) (*Task, error) {
 
 }
 
+//DeleteTask with specific id
+func (s *QSession) DeleteTask(ID string) error {
+	if s != nil && s.mgoSession != nil && len(ID) > 0 {
+		c := s.mgoSession.DB("store").C("tasks")
+		if bson.IsObjectIdHex(ID) {
+			bID := bson.ObjectIdHex(ID)
+			err := c.Remove(bson.M{"_id": bID})
+			return err
+		}
+		return &mgo.QueryError{0, "Bad taskID", false}
+	}
+	// do mysql when supported
+	return &mgo.QueryError{0, "Bad parameters or db not defined", false}
+
+}
+
 //InsertUserTask - insert User task permissions
 func (s *QSession) InsertUserTask(ut *UserTask) error {
 	if s != nil && s.mgoSession != nil {
@@ -201,7 +218,7 @@ func (s *QSession) FindUserTasks(UserID string, TaskID string) ([]UserTask, erro
 			}
 
 			ut.TaskID = TaskID
-			err := c.Find(ut).All(&results)
+			err := c.Find(bson.M{"userid": UserID, "taskid": TaskID}).All(&results)
 			if err != nil {
 				return results, err
 			}

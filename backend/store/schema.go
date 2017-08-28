@@ -43,9 +43,12 @@ type Task struct {
 
 /*UserTask  - user task*/
 type UserTask struct {
-	TaskID string  `json:"taskid" bson:"taskid"`
-	UserID string  `json: "userid" bson:"userid"`
-	ACL    ACLPerm `json:"acl" bson:"acl"`
+	TaskID       string    `json:"taskid" bson:"taskid"`
+	UserID       string    `json: "userid" bson:"userid"`
+	TaskName     string    `json: "name" bson: "name"`
+	CreationTime time.Time `json:"c_time" bson:"c_time"`
+	DeadLineTime time.Time `json:"d_time" bson:"d_time"`
+	ACL          ACLPerm   `json:"acl" bson:"acl"`
 }
 
 /*SKeys - secure key schema */

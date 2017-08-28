@@ -166,11 +166,29 @@ func TestCreateUserTask(t *testing.T) {
 	taskID, err := session.InsertTask(task)
 	assert.Nil(t, err)
 
+	ntask := new(Task)
+	ntask = task
+	ntask.Name = "C_new_name"
+	ntask.ID = ""
+	ntaskID, err := session.InsertTask(task)
+	assert.Nil(t, err)
+
 	//complete task
 	uTask.TaskID = taskID
 	err = session.InsertUserTask(uTask)
 	assert.Error(t, err)
 	uTask.UserID = user.ID.Hex()
+	uTask.CreationTime = task.CreationTime
+	uTask.DeadLineTime = task.DeadLineTime
+
+	err = session.InsertUserTask(uTask)
+	assert.Nil(t, err)
+
+	nuTask := new(UserTask)
+	nuTask = uTask
+	nuTask.TaskID = ntaskID
+	nuTask.CreationTime = ntask.CreationTime
+	nuTask.DeadLineTime = ntask.DeadLineTime
 	err = session.InsertUserTask(uTask)
 	assert.Nil(t, err)
 
@@ -180,7 +198,16 @@ func TestCreateUserTask(t *testing.T) {
 
 	ret, dberr = session.FindUserTasks(uTask.UserID, "")
 	assert.Nil(t, dberr)
-	assert.True(t, len(ret) > 0)
+	assert.True(t, len(ret) > 1)
 
+	err = session.DeleteTask(uTask.TaskID)
+	assert.Nil(t, err)
+	err = session.DeleteTask("AAA")
+	assert.Error(t, err)
+
+	session.Close()
 	defer db.Close()
+	err = session.DeleteTask(uTask.TaskID)
+	assert.Error(t, err)
+
 }

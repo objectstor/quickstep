@@ -139,7 +139,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if task.ID.Hex() != taskID {
-		// TODO delete task
+		session.DeleteTask(task.ID.Hex())
 		JSONError(w, "task id error", http.StatusBadRequest)
 		return
 	}
@@ -147,8 +147,12 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	uTask := new(qdb.UserTask)
 	uTask.UserID = UserTaskID
 	uTask.TaskID = taskID
+	uTask.TaskName = task.Name
+	uTask.CreationTime = task.CreationTime
+	uTask.DeadLineTime = task.DeadLineTime
 	err = session.InsertUserTask(uTask)
 	if err != nil {
+		session.DeleteTask(uTask.TaskID)
 		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 		// TODO delete task
