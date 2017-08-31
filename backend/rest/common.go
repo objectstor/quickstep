@@ -14,6 +14,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+//Qcontext Session information retrieved from context
 type Qcontext struct {
 	r         *http.Request
 	dbSession *qdb.QSession
