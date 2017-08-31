@@ -109,7 +109,7 @@ func main() {
 			log.Fatal("Can't bring up plugins : ", err)
 		}
 	}
-	err = router.Enable()
+	err = router.EnableRest()
 	if err != nil {
 		log.Fatal("Router init failed : ", err)
 	}

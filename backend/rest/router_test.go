@@ -24,7 +24,7 @@ func TestNullSession(t *testing.T) {
 	// test database connection error
 	router, err := New("localhost:9090", nil)
 	assert.Nil(t, err)
-	err = router.Enable()
+	err = router.EnableRest()
 	assert.Nil(t, err)
 	server := httptest.NewServer(router.Mux)
 	//server.Start()
@@ -58,7 +58,7 @@ func TestRouterLogin(t *testing.T) {
 	assert.Nil(t, err)
 	router, err := New("localhost:9090", session)
 	assert.Nil(t, err)
-	err = router.Enable()
+	err = router.EnableRest()
 	assert.Nil(t, err)
 	server := httptest.NewServer(router.Mux)
 	//server.Start()
@@ -144,7 +144,7 @@ func TestRouterLoginPlugin(t *testing.T) {
 	assert.Nil(t, err)
 	err = router.EnablePlugins("rauth")
 	assert.Nil(t, err)
-	err = router.Enable()
+	err = router.EnableRest()
 	assert.Nil(t, err)
 
 	server := httptest.NewServer(router.Mux)

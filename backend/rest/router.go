@@ -35,7 +35,7 @@ func (r *RServer) EnablePlugins(plugins string) error {
 }
 
 /*Enable prepare server for work */
-func (r *RServer) Enable() error {
+func (r *RServer) EnableRest() error {
 	var useTokenAuth bool
 	r.Mux = goji.NewMux()
 	r.Mux.HandleFunc(pat.Post("/login"), doLogin(r.s))

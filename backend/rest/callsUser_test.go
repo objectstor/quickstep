@@ -35,7 +35,7 @@ func authAndGetToken(user string, passwd string) (*httptest.Server, *JSONToken, 
 	if err != nil {
 		return nil, nil, err
 	}
-	err = router.Enable()
+	err = router.EnableRest()
 	if err != nil {
 		return nil, nil, err
 	}
@@ -99,7 +99,7 @@ func TestCreateGetUser(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
 
-	bacl := qdb.CreateACL("","blah.org", "crud")
+	bacl := qdb.CreateACL("", "blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "admin"
 	blahOrgUser.Password = "password"
@@ -273,7 +273,7 @@ func TestCreateUserOther(t *testing.T) {
 	// change directly in db blah admin perm to rd
 	blahOrgUser, err = session.FindUser(blahOrgUser.Name, blahOrgUser.Org)
 	bacl = qdb.CreateACL("", "blah.org", "rd") // we have now just delete and read access
-	blahOrgUser.ACL[0] = *bacl             // can create modify list users in blah domain
+	blahOrgUser.ACL[0] = *bacl                 // can create modify list users in blah domain
 	err = session.InsertUser(blahOrgUser)
 	assert.Nil(t, err)
 	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
