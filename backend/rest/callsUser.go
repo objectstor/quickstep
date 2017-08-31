@@ -19,17 +19,13 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
-	session := GetDbSessionFromContext(r)
-	contextUserString := GetUserFromContext(r)
-	if !ValidUserAndSession(session, contextUserString, w) {
-		return
-	}
-	defer session.Close()
-	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
+	ctx, err := NewQContext(r, true)
 	if err != nil {
 		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
+	session := ctx.DBSession()
+	defer session.Close()
 
 	// let's decode body
 	decoder := json.NewDecoder(r.Body)
@@ -46,7 +42,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, "org can't be empty", http.StatusBadRequest)
 		return
 	}
-	creator, dberr := session.FindUser(contextUser, contextOrg)
+	creator, dberr := session.FindUser(ctx.User(), ctx.Org())
 	if dberr != nil {
 		JSONError(w, dberr.Error(), http.StatusBadRequest)
 		return
@@ -85,26 +81,23 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 
 func getUser(w http.ResponseWriter, r *http.Request) {
 	var qUser qdb.User
-	session := GetDbSessionFromContext(r)
-	contextUserString := GetUserFromContext(r)
-	if !ValidUserAndSession(session, contextUserString, w) {
+	ctx, err := NewQContext(r, true)
+	if err != nil {
+		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
+	session := ctx.DBSession()
 	defer session.Close()
 	httpUser, err := GetParamFromRequest(r, "name", "/user")
 	if err != nil {
 		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
-	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
-	if err != nil {
-		JSONError(w, "Syntax error", http.StatusBadRequest)
-		return
-	}
+
 	//body zero we can get info about ourself
 	if r.ContentLength == 0 {
-		if httpUser == contextUser {
-			nUser, err := session.FindUser(contextUser, contextOrg)
+		if httpUser == ctx.User() {
+			nUser, err := session.FindUser(ctx.User(), ctx.Org())
 			if err != nil {
 				if qdb.EntryNotFound(err) {
 					err = errors.New("Access error")
@@ -135,7 +128,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	creator, dberr := session.FindUser(contextUser, contextOrg)
+	creator, dberr := session.FindUser(ctx.User(), ctx.Org())
 	if dberr != nil {
 		JSONError(w, dberr.Error(), http.StatusBadRequest)
 		return

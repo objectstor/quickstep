@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"net/http"
 	"quickstep/backend/store"
-	"strings"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
@@ -86,16 +85,12 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 
 func getStat(w http.ResponseWriter, r *http.Request) {
 	/* allow only for top level user */
-	contextUserString := GetUserFromContext(r)
-	_, contextOrg, err := GetUserAndOrg(contextUserString)
+	ctx, err := NewQContext(r, true)
 	if err != nil {
-		JSONError(w, "Auth error ", http.StatusForbidden)
+		JSONError(w, err.Error(), http.StatusForbidden)
 		return
 	}
-	if len(strings.Split(contextOrg, ".")) > 1 {
-		JSONError(w, "Auth error ", http.StatusForbidden)
-		return
-	}
+	defer ctx.DBSession().Close()
 
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
@@ -110,9 +105,4 @@ func getStat(w http.ResponseWriter, r *http.Request) {
 	})
 	fmt.Fprintf(w, "\n}\n")
 
-	//user := GetUserFromContext(r)
-	//if len(user) > 0 {
-	//	fmt.Fprintf(w, "change:  user_not_empty\n")
-	//	}
-	// end of temporary change
 }

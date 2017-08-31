@@ -17,23 +17,15 @@ import (
 //TODO add etag checking
 // TODO proces in bqserver which search and delete task witout owner
 func getTasksForUser(w http.ResponseWriter, r *http.Request) {
-	session := GetDbSessionFromContext(r)
-	contextUserString := GetUserFromContext(r)
-	userID := GetIDFromContext(r)
-	if !ValidUserAndSession(session, contextUserString, w) {
+	ctx, err := NewQContext(r, true)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	session := ctx.DBSession()
 	defer session.Close()
-	//contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
-	//if err != nil {
-	//	JSONError(w, "Context error ", http.StatusBadRequest)
-	//	return
-	//}
-	if len(userID) == 0 {
-		JSONError(w, "Context error ", http.StatusBadRequest)
-	}
 	// if header have data pick date if not pick all
-	result, err := session.FindUserTasks(userID, "")
+	result, err := session.FindUserTasks(ctx.UserID(), "")
 	if err != nil {
 		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
@@ -74,23 +66,15 @@ func postTask(w http.ResponseWriter, r *http.Request) {
 func putTask(w http.ResponseWriter, r *http.Request) {
 	var task qdb.Task
 	var acl qdb.ACLPerm
-	session := GetDbSessionFromContext(r)
-	contextUserString := GetUserFromContext(r)
-	userID := GetIDFromContext(r)
-	if !ValidUserAndSession(session, contextUserString, w) {
+	ctx, err := NewQContext(r, true)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	session := ctx.DBSession()
 	defer session.Close()
-	if len(userID) == 0 {
-		JSONError(w, "Context error ", http.StatusBadRequest)
-	}
 	// must have header with oner ACL otherwise
 	// crud for current owner
-	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
-	if err != nil {
-		JSONError(w, "Context error ", http.StatusBadRequest)
-		return
-	}
 	aclString := r.Header.Get("X-Task-ACL")
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&task)
@@ -123,8 +107,8 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		}
 		UserTaskID = nUser.ID.Hex()
 	} else {
-		acl = *qdb.CreateACL(contextUser, contextOrg, "crud")
-		UserTaskID = userID
+		acl = *qdb.CreateACL(ctx.User(), ctx.Org(), "crud")
+		UserTaskID = ctx.UserID()
 	}
 	// always create task.ID  as this is put even when task name are the same
 	// we can have 2 tasks with the same name

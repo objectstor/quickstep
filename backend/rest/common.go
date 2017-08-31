@@ -14,6 +14,85 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+type Qcontext struct {
+	r         *http.Request
+	dbSession *qdb.QSession
+	user      string
+	userID    string
+	u         string
+	o         string
+}
+
+//NewQContext - create new context
+func NewQContext(r *http.Request, validate bool) (*Qcontext, error) {
+	if r == nil {
+		return nil, errors.New("empty request")
+	}
+	q := new(Qcontext)
+	q.r = r
+	session := q.r.Context().Value("dbsession")
+	if session != nil {
+		q.dbSession = session.(*qdb.QSession)
+	}
+	arg := q.r.Context().Value("user")
+	if arg != nil {
+		q.user = arg.(string)
+	}
+	arg = q.r.Context().Value("user_id")
+	if arg != nil {
+		q.userID = arg.(string)
+	}
+	uo := strings.SplitN(q.user, "#", 2)
+	if len(uo) != 2 {
+		if q.dbSession != nil {
+			q.dbSession.Close()
+		}
+		return nil, errors.New("UserArg bad format")
+	}
+	if len(uo[1]) == 0 {
+		uo[1] = "SYSTEM"
+	}
+	q.u = uo[0]
+	q.o = uo[1]
+	if validate {
+		if q.dbSession == nil {
+			return nil, errors.New("Session error")
+		}
+		if len(q.user) == 0 {
+			if q.dbSession != nil {
+				q.dbSession.Close()
+			}
+			return nil, errors.New("User error")
+		}
+	}
+	return q, nil
+}
+
+//UserString get user string
+func (q *Qcontext) UserString() string {
+	return q.user
+}
+
+//UserID - get user id
+func (q *Qcontext) UserID() string {
+	return q.userID
+}
+
+//DBSession  - get database session
+func (q *Qcontext) DBSession() *qdb.QSession {
+	return q.dbSession
+}
+
+//Org - get org
+func (q *Qcontext) Org() string {
+	return q.o
+}
+
+//User - get user name
+func (q *Qcontext) User() string {
+	return q.u
+}
+
 //JSONError send Json error code
 func JSONError(w http.ResponseWriter, message string, code int) {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
@@ -27,33 +106,6 @@ func JSONOk(w http.ResponseWriter, message string) {
 	fmt.Fprintf(w, "{message: %q}", message)
 }
 
-/*GetDbSessionFromContext retrive db session from context */
-func GetDbSessionFromContext(r *http.Request) *qdb.QSession {
-	session := r.Context().Value("dbsession")
-	if session != nil {
-		return session.(*qdb.QSession)
-	}
-	return nil
-}
-
-/*GetUserFromContext retrive user from context */
-func GetUserFromContext(r *http.Request) string {
-	session := r.Context().Value("user")
-	if session != nil {
-		return session.(string)
-	}
-	return ""
-}
-
-/*GetIDFromContext retrive user id from context */
-func GetIDFromContext(r *http.Request) string {
-	session := r.Context().Value("user_id")
-	if session != nil {
-		return session.(string)
-	}
-	return ""
-}
-
 //GetParamFromRequest get safe param from request
 func GetParamFromRequest(r *http.Request, name string, suffix string) (string, error) {
 	path := r.RequestURI
@@ -63,31 +115,6 @@ func GetParamFromRequest(r *http.Request, name string, suffix string) (string, e
 	}
 	value := pat.Param(r, name)
 	return value, nil
-}
-
-//ValidUserAndSession - validat database and user ( true ok)
-func ValidUserAndSession(s *qdb.QSession, u string, w http.ResponseWriter) bool {
-	if s == nil {
-		JSONError(w, "database error", http.StatusNotAcceptable)
-		return false
-	}
-	if len(u) == 0 {
-		JSONError(w, "auth context error", http.StatusForbidden)
-		return false
-	}
-	return true
-}
-
-//GetUserAndOrg - get user and org parts from user
-func GetUserAndOrg(u string) (string, string, error) {
-	uo := strings.SplitN(u, "#", 2)
-	if len(uo) != 2 {
-		return "", "", errors.New("UserArg bad format")
-	}
-	if len(uo[1]) == 0 {
-		uo[1] = "SYSTEM"
-	}
-	return uo[0], uo[1], nil
 }
 
 //ParseRestTask parse task fill gaps when possible
