@@ -24,7 +24,7 @@ type QuickStepUserClaims struct {
 /*UserAuth - user auth info */
 type UserAuth struct {
 	Name     string `json:"name"`
-	Password string `json:"password"`
+	Secret string `json:"secret"`
 	Org      string `json:"org"` // additional org string ex. shop.com, research_group
 }
 
@@ -43,7 +43,7 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
-		if len(userAuth.Name) == 0 || len(userAuth.Password) == 0 {
+		if len(userAuth.Name) == 0 || len(userAuth.Secret) == 0 {
 			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
@@ -53,7 +53,7 @@ func doLogin(s *qdb.QSession) func(w http.ResponseWriter, r *http.Request) {
 			JSONError(w, "Auth error", http.StatusForbidden)
 			return
 		}
-		if user.Name == userAuth.Name && user.Password == userAuth.Password {
+		if user.Name == userAuth.Name && user.Secret == userAuth.Secret {
 			// create user string
 			owner := fmt.Sprintf("%s#%s", user.Name, user.Org)
 			// Create the Claims

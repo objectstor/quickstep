@@ -42,7 +42,7 @@ func authAndGetToken(user string, passwd string) (*httptest.Server, *JSONToken, 
 	server := httptest.NewServer(router.Mux)
 	loginURL := fmt.Sprintf("%s/login", server.URL)
 	super.Name = user
-	super.Password = passwd
+	super.Secret = passwd
 	super.Org = "org"
 	jsonStr, err := json.Marshal(super)
 	if err != nil {
@@ -65,7 +65,7 @@ func GetToken(server *httptest.Server, user string, org string, passwd string) (
 	loginURL := fmt.Sprintf("%s/login", server.URL)
 	super := new(qdb.User)
 	super.Name = user
-	super.Password = passwd
+	super.Secret = passwd
 	super.Org = org
 	jsonStr, err := json.Marshal(super)
 	if err != nil {
@@ -85,7 +85,7 @@ func GetToken(server *httptest.Server, user string, org string, passwd string) (
 }
 
 func TestCreateGetUser(t *testing.T) {
-	server, superToken, err := authAndGetToken("super", "password")
+	server, superToken, err := authAndGetToken("super", "secret")
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
@@ -102,7 +102,7 @@ func TestCreateGetUser(t *testing.T) {
 	bacl := qdb.CreateACL("", "blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "admin"
-	blahOrgUser.Password = "password"
+	blahOrgUser.Secret = "secret"
 	blahOrgUser.Org = "blah.org"
 	blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
 	blahJSON, err := json.Marshal(blahOrgUser)
@@ -110,7 +110,7 @@ func TestCreateGetUser(t *testing.T) {
 
 	fooOrgUser := new(qdb.User)
 	fooOrgUser.Name = "admin"
-	fooOrgUser.Password = "password"
+	fooOrgUser.Secret = "secret"
 	fooOrgUser.Org = "foo.org"
 	facl := qdb.CreateACL("", "foo.org", "crud")
 	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
@@ -135,9 +135,9 @@ func TestCreateGetUser(t *testing.T) {
 	resp, err = client.Do(req)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
 	// get token for both
-	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
+	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Secret)
 	assert.Nil(t, err)
-	fooToken, err := GetToken(server, fooOrgUser.Name, fooOrgUser.Org, fooOrgUser.Password)
+	fooToken, err := GetToken(server, fooOrgUser.Name, fooOrgUser.Org, fooOrgUser.Secret)
 	assert.Nil(t, err)
 	// do get for BLAH on blah.org an foo.org domains
 	qUser := new(qdb.User)
@@ -216,7 +216,7 @@ func TestCreateGetUser(t *testing.T) {
 }
 
 func TestCreateUserOther(t *testing.T) {
-	server, superToken, err := authAndGetToken("super", "password")
+	server, superToken, err := authAndGetToken("super", "secret")
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
@@ -256,7 +256,7 @@ func TestCreateUserOther(t *testing.T) {
 	bacl := qdb.CreateACL("", "blah.org", "crud")
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "admin"
-	blahOrgUser.Password = "password"
+	blahOrgUser.Secret = "secret"
 	blahOrgUser.Org = "blah.org"
 	blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
 	err = session.DeleteUser(blahOrgUser.Name, blahOrgUser.Org)
@@ -276,7 +276,7 @@ func TestCreateUserOther(t *testing.T) {
 	blahOrgUser.ACL[0] = *bacl                 // can create modify list users in blah domain
 	err = session.InsertUser(blahOrgUser)
 	assert.Nil(t, err)
-	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
+	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Secret)
 	assert.Nil(t, err)
 
 	// create new user using blah admin token
@@ -324,7 +324,7 @@ func TestCreateUserOther(t *testing.T) {
 }
 
 func TestGetUserOther(t *testing.T) {
-	server, superToken, err := authAndGetToken("super", "password")
+	server, superToken, err := authAndGetToken("super", "secret")
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
@@ -355,9 +355,9 @@ func TestGetUserOther(t *testing.T) {
 	assert.Nil(t, err)
 	blahOrgUser := new(qdb.User)
 	blahOrgUser.Name = "nuser"
-	blahOrgUser.Password = "password"
+	blahOrgUser.Secret = "secret"
 	blahOrgUser.Org = "blah.org"
-	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Password)
+	blahToken, err := GetToken(server, blahOrgUser.Name, blahOrgUser.Org, blahOrgUser.Secret)
 	assert.Nil(t, err)
 
 	//blahOrgUser.ACL = append(blahOrgUser.ACL, *bacl) // can create modify list users in blah domain
@@ -395,7 +395,7 @@ func TestGetUserOther(t *testing.T) {
 }
 
 func TestStat(t *testing.T) {
-	server, superToken, err := authAndGetToken("super", "password")
+	server, superToken, err := authAndGetToken("super", "secret")
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()

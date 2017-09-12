@@ -103,7 +103,7 @@ func TestRouterLogin(t *testing.T) {
 	resp.Body.Close()
 
 	super.Name = ""
-	super.Password = "LamePassword"
+	super.Secret = "LameSecret"
 	super.Org = "org"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
@@ -115,7 +115,7 @@ func TestRouterLogin(t *testing.T) {
 	resp.Body.Close()
 
 	super.Name = "super"
-	super.Password = "password"
+	super.Secret = "secret"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
 	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))
@@ -152,7 +152,7 @@ func TestRouterLoginPlugin(t *testing.T) {
 	loginURL := fmt.Sprintf("%s/login", server.URL)
 
 	super.Name = "super"
-	super.Password = "password"
+	super.Secret = "secret"
 	super.Org = "org"
 	jsonStr, err := json.Marshal(super)
 	assert.Nil(t, err)
@@ -182,7 +182,7 @@ func TestRouterLoginPlugin(t *testing.T) {
 	resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
 	super.Name = "super"
-	super.Password = "bad_password"
+	super.Secret = "bad_secret"
 	jsonStr, err = json.Marshal(super)
 	assert.Nil(t, err)
 	req, _ = http.NewRequest("POST", loginURL, bytes.NewBuffer(jsonStr))

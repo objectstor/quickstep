@@ -105,8 +105,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 				JSONError(w, err.Error(), http.StatusForbidden)
 				return
 			}
-			nUser.Password = "" // remove password
-			nUser.ID = ""       // remove ID
+			nUser.Secret = "" // remove secret
+			nUser.ID = ""     // remove ID
 			j, err := json.Marshal(nUser)
 			if err != nil {
 				JSONError(w, err.Error(), http.StatusForbidden)
@@ -143,7 +143,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		nUser.ID = ""
-		nUser.Password = ""
+		nUser.Secret = ""
 		j, err := json.Marshal(nUser)
 		if err != nil {
 			JSONError(w, err.Error(), http.StatusForbidden)

@@ -6,6 +6,7 @@ import (
 
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -21,9 +22,53 @@ type RespTask struct {
 	ID string `json:"taskid"`
 }
 
+func CreateRestTask(serverURL string, acl string, token *JSONToken, task *qdb.Task) error {
+	taskURL := fmt.Sprintf("%s/task", serverURL)
+	client := &http.Client{}
+	jsonPayload, err := json.Marshal(task)
+	if err != nil {
+		return err
+	}
+	req, _ := http.NewRequest("PUT", taskURL, bytes.NewBuffer(jsonPayload))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", token.Token)
+	if len(acl) > 0 {
+		req.Header.Set("X-Task-ACL", acl)
+	}
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(resp.Status)
+	}
+	return nil
+}
+
+func CreateRestUser(serverURL string, token *JSONToken, user *qdb.User) error {
+	// create 2 users
+	userURL := fmt.Sprintf("%s/user/%s", serverURL, user.Name)
+	client := &http.Client{}
+	jsonPayload, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	req, _ := http.NewRequest("POST", userURL, bytes.NewBuffer(jsonPayload))
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Golden-Ticket", token.Token)
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return errors.New(resp.Status)
+	}
+	return nil
+}
+
 func TestTask(t *testing.T) {
 	var task qdb.Task
-	server, superToken, err := authAndGetToken("super", "password")
+	server, superToken, err := authAndGetToken("super", "secret")
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
@@ -111,7 +156,6 @@ func TestTask(t *testing.T) {
 	resp, err = client.Do(req)
 	assert.Nil(t, err)
 	assert.Equal(t, http.StatusOK, resp.StatusCode) // auth succeed
-
 	// bad  acl
 	acl := new(qdb.ACLPerm)
 	//acl.User =
@@ -191,11 +235,83 @@ func TestTask(t *testing.T) {
 
 }
 
+func TestPuACL(t *testing.T) {
+	server, superToken, err := authAndGetToken("super", "secret")
+
+	fooOrgUser := new(qdb.User)
+	fooOrgUser.Name = fmt.Sprintf("foo_admin_%s", time.Now().Format("20060102150405"))
+	fooOrgUser.Secret = "secret"
+	fooOrgUser.Org = "foo.org"
+	facl := qdb.CreateACL("", "foo.org", "crud")
+	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
+	facl = qdb.CreateACL("", "boo.org", "crud")
+	fooOrgUser.ACL = append(fooOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
+
+	booOrgUser := new(qdb.User)
+	booOrgUser.Name = fmt.Sprintf("boo_admin_%s", time.Now().Format("20060102150405"))
+	booOrgUser.Secret = "secret"
+	booOrgUser.Org = "boo.org"
+	facl = qdb.CreateACL("", "boo.org", "crud")
+	booOrgUser.ACL = append(booOrgUser.ACL, *facl) // can create modify read users in blah.org and foo.org domain
+
+	err = CreateRestUser(server.URL, superToken, fooOrgUser)
+	assert.Nil(t, err)
+	err = CreateRestUser(server.URL, superToken, booOrgUser)
+	assert.Nil(t, err)
+	tm := time.Now()
+
+	btask := new(qdb.Task)
+	btask.Name = fmt.Sprintf("task_for_boo_user_%s", tm.Format("20060102150405"))
+	btask.Private = false
+	btask.Status = "NEW"
+	btask.CreationTime = time.Now()
+	btask.DeadLineTime = btask.CreationTime.Add(time.Hour + 24)
+	booacl := new(qdb.ACLPerm)
+	booacl.User = booOrgUser.Name
+	booacl.Domain = booOrgUser.Org
+	booacl.Create = true
+	booacl.Delete = true
+	booacl.Read = true
+	booacl.Update = true
+	booaclJSON, err := json.Marshal(booacl)
+	assert.Nil(t, err)
+
+	ftask := new(qdb.Task)
+	ftask.Name = fmt.Sprintf("task_for_foo_user_%s", tm.Format("20060102150405"))
+	ftask.Private = false
+	ftask.Status = "NEW"
+	ftask.CreationTime = time.Now()
+	ftask.DeadLineTime = ftask.CreationTime.Add(time.Hour + 24)
+	fooacl := new(qdb.ACLPerm)
+	fooacl.User = fooOrgUser.Name
+	fooacl.Domain = fooOrgUser.Org
+	fooacl.Create = true
+	fooacl.Delete = true
+	fooacl.Read = true
+	fooacl.Update = true
+	fooaclJSON, err := json.Marshal(fooacl)
+
+	fooToken, err := GetToken(server, fooOrgUser.Name, fooOrgUser.Org, fooOrgUser.Secret)
+	assert.Nil(t, err)
+	booToken, err := GetToken(server, booOrgUser.Name, booOrgUser.Org, booOrgUser.Secret)
+	//assert.Nil(t, err)
+	//create task for boo by foo
+	// this should succeed as foo have access to boo
+	err = CreateRestTask(server.URL, string(booaclJSON), fooToken, btask)
+	assert.Nil(t, err)
+
+	// create task for foo by boo
+	//this will fail as  boo dont have access to foo
+	err = CreateRestTask(server.URL, string(fooaclJSON), booToken, ftask)
+	assert.Error(t, err)
+
+}
+
 func TestGetAllTasks(t *testing.T) {
 	var task qdb.Task
 	var jsonStr []byte
 	var tasks []qdb.Task
-	server, superToken, err := authAndGetToken("super", "password")
+	server, superToken, err := authAndGetToken("super", "secret")
 	assert.Nil(t, err)
 	client := &http.Client{}
 	defer server.Close()
@@ -213,9 +329,7 @@ func TestGetAllTasks(t *testing.T) {
 		resp, err := client.Do(req)
 		assert.Nil(t, err)
 		assert.Equal(t, http.StatusOK, resp.StatusCode)
-
 	}
-
 	req, _ := http.NewRequest("GET", taskURL, bytes.NewBufferString(""))
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Golden-Ticket", superToken.Token)

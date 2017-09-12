@@ -26,7 +26,7 @@ type Config struct {
 }
 
 //CheckOrCreateSuper - set super user or create new one
-func CheckOrCreateSuper(password string, s *qdb.QSession, minPasswdLen int) error {
+func CheckOrCreateSuper(secret string, s *qdb.QSession, minPasswdLen int) error {
 	if s == nil {
 		return errors.New("db session error")
 	}
@@ -34,8 +34,8 @@ func CheckOrCreateSuper(password string, s *qdb.QSession, minPasswdLen int) erro
 	_, err := s.FindUser("system", "")
 	if err != nil {
 		if qdb.EntryNotFound(err) {
-			if len(password) < minPasswdLen {
-				msg := fmt.Sprintf("Password too short. Should be at least %d characters long.\n", minPasswdLen)
+			if len(secret) < minPasswdLen {
+				msg := fmt.Sprintf("Secret too short. Should be at least %d characters long.\n", minPasswdLen)
 				return errors.New(msg)
 			}
 			acl := qdb.CreateACL("", "", "crud")
@@ -44,8 +44,8 @@ func CheckOrCreateSuper(password string, s *qdb.QSession, minPasswdLen int) erro
 			user.Name = "system"
 			user.ACL = append(user.ACL, *acl)
 			h := sha1.New()
-			h.Write([]byte(password))
-			user.Password = hex.EncodeToString(h.Sum(nil))
+			h.Write([]byte(secret))
+			user.Secret = hex.EncodeToString(h.Sum(nil))
 			err = s.InsertUser(user)
 			if err != nil {
 				return err
@@ -61,7 +61,7 @@ func main() {
 	var configName = flag.String("config", ".qstepserver.conf", "bqstepserver config")
 	var verbose = flag.Bool("verbose", true, "set to true to verbose mode")
 	var restURL = flag.String("url", "localhost:9090", "web rest url")
-	var superPassword = flag.String("passwd", "", "initial password")
+	var superSecret = flag.String("passwd", "", "initial secret")
 	var config Config
 
 	flag.Parse()
@@ -87,13 +87,13 @@ func main() {
 	if err != nil {
 		log.Fatal("Database connection failed : ", err)
 	}
-	if len(*superPassword) > 0 {
+	if len(*superSecret) > 0 {
 		var pLen int
 		pLen = 16 // minimum default length
 		if config.MinPasswdLength > pLen {
 			pLen = config.MinPasswdLength
 		}
-		e := CheckOrCreateSuper(*superPassword, session.New(), pLen)
+		e := CheckOrCreateSuper(*superSecret, session.New(), pLen)
 		if e != nil {
 			log.Fatal("System user error : ", e)
 		}

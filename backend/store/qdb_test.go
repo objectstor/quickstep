@@ -53,7 +53,7 @@ func TestDBUserInsertFind(t *testing.T) {
 	user := new(User)
 	user.ID = bson.NewObjectId()
 	user.Name = "super"
-	user.Password = "password"
+	user.Secret = "secret"
 	user.ACL = append(user.ACL, *acl)
 	user.Org = "org"
 	_, err = session.FindUser("super", "org")

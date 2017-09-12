@@ -19,11 +19,11 @@ type ACLPerm struct {
 
 /*User - user schema */
 type User struct {
-	ID       bson.ObjectId `json:"id,omitempty" bson:"_id"`
-	Name     string        `json:"name" bson:"name"`
-	Password string        `json:"password,omitempty" bson:"password"`
-	Org      string        `json:"org" bson:"org"`
-	ACL      []ACLPerm     `json:"acl,omitempty" bson:"acl"`
+	ID     bson.ObjectId `json:"id,omitempty" bson:"_id"`
+	Name   string        `json:"name" bson:"name"`
+	Secret string        `json:"secret,omitempty" bson:"secret"`
+	Org    string        `json:"org" bson:"org"`
+	ACL    []ACLPerm     `json:"acl,omitempty" bson:"acl"`
 }
 
 /*Task - token schema */
@@ -39,6 +39,7 @@ type Task struct {
 	Name             string        `bson:"name" json:"name"`
 	Description      []byte        `bson:"description" json:"description"`
 	Comments         []byte        `bson:"comments" json:"comments"`
+	Action           []byte        `json:"action,omitempty" bson:"action"`
 }
 
 /*UserTask  - user task*/
@@ -89,8 +90,15 @@ func CheckACL(u *User, user string, domain string, perm string) bool {
 	proceed = false
 	for _, acl := range u.ACL {
 		if len(user) > 0 {
-			if strings.Compare(user, acl.User) == 0 && strings.Compare(domain, acl.Domain) == 0 {
-				proceed = true
+			// if acl.User == "" have accees to whole domain
+			if len(acl.User) == 0 {
+				if strings.HasSuffix(domain, acl.Domain) {
+					proceed = true
+				}
+			} else {
+				if strings.Compare(user, acl.User) == 0 && strings.Compare(domain, acl.Domain) == 0 {
+					proceed = true
+				}
 			}
 		} else {
 			if strings.HasSuffix(domain, acl.Domain) {

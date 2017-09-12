@@ -105,8 +105,20 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 			JSONError(w, "user not found", http.StatusBadRequest)
 			return
 		}
+		creator, dberr := session.FindUser(ctx.User(), ctx.Org())
+		if dberr != nil {
+			JSONError(w, dberr.Error(), http.StatusBadRequest)
+			return
+		}
+		if !qdb.CheckACL(creator, acl.User, acl.Domain, "c") {
+			JSONError(w, "bad access permissions", http.StatusBadRequest)
+			return
+		}
+
+		// we need to check if UserCTX have access to user acl
 		UserTaskID = nUser.ID.Hex()
 	} else {
+		// have full permission on my object
 		acl = *qdb.CreateACL(ctx.User(), ctx.Org(), "crud")
 		UserTaskID = ctx.UserID()
 	}
@@ -151,6 +163,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	uTask.TaskName = task.Name
 	uTask.CreationTime = task.CreationTime
 	uTask.DeadLineTime = task.DeadLineTime
+	uTask.ACL = acl
 	err = session.InsertUserTask(uTask)
 	if err != nil {
 		session.DeleteTask(uTask.TaskID)
