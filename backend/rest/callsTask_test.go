@@ -148,6 +148,7 @@ func TestTask(t *testing.T) {
 	task.Name = fmt.Sprintf("blah_one_%s", tm.Format("20060102150405"))
 	task.DeadLineTime = task.DeadLineTime.Add(time.Hour + 24)
 	task.CreationTime = time.Now()
+    task.ItemType =  qdb.TaskItem
 	jsonStr, err = json.Marshal(task)
 	assert.Nil(t, err)
 	req, _ = http.NewRequest("PUT", taskURL, bytes.NewBuffer(jsonStr))
@@ -264,6 +265,7 @@ func TestPuACL(t *testing.T) {
 	btask.Name = fmt.Sprintf("task_for_boo_user_%s", tm.Format("20060102150405"))
 	btask.Private = false
 	btask.Status = "NEW"
+    btask.ItemType = qdb.TaskItem
 	btask.CreationTime = time.Now()
 	btask.DeadLineTime = btask.CreationTime.Add(time.Hour + 24)
 	booacl := new(qdb.ACLPerm)
@@ -280,6 +282,7 @@ func TestPuACL(t *testing.T) {
 	ftask.Name = fmt.Sprintf("task_for_foo_user_%s", tm.Format("20060102150405"))
 	ftask.Private = false
 	ftask.Status = "NEW"
+    btask.ItemType = qdb.TaskItem
 	ftask.CreationTime = time.Now()
 	ftask.DeadLineTime = ftask.CreationTime.Add(time.Hour + 24)
 	fooacl := new(qdb.ACLPerm)
@@ -319,6 +322,7 @@ func TestGetAllTasks(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		tm := time.Now()
 		task.Name = fmt.Sprintf("super_task_%s_%d", tm.Format("20060102150405"), i)
+        task.ItemType = qdb.TaskItem
 		task.CreationTime = time.Now()
 		task.DeadLineTime = task.CreationTime.Add(time.Hour + 24)
 		jsonStr, err = json.Marshal(task)

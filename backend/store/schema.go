@@ -7,6 +7,14 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// task Types
+const (
+	TaskItem uint64 = 1 << iota
+	MessageItem
+	JobItem
+    LastItem
+)
+
 //ACLPerm - acl's
 type ACLPerm struct {
 	User   string `json:"user,omitempty" bson:"user"`
@@ -40,6 +48,7 @@ type Task struct {
 	Description      []byte        `bson:"description" json:"description"`
 	Comments         []byte        `bson:"comments" json:"comments"`
 	Action           []byte        `json:"action,omitempty" bson:"action"`
+	ItemType         uint64        `json:"item_type bson: item_type"`
 }
 
 /*UserTask  - user task*/

@@ -169,9 +169,13 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 		session.DeleteTask(uTask.TaskID)
 		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
-		// TODO delete task
 	}
-
+	// if len(task.Action) > 0 {
+	// process action
+	// jobID :=  queue.submitAction(task)
+	//  w.Header().Set("X-Action-ID", jobID)
+	//}
+	//
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	fmt.Fprintf(w, "{\"taskid\": %q}", task.ID.Hex())
 	return

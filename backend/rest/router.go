@@ -45,9 +45,13 @@ func (r *RServer) EnableRest() error {
 	r.Mux.HandleFunc(pat.Get("/user/:name"), getUser)
 
 	//r.Mux.Handle(pat.Get("/task/:id"), getTask)
-	//r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
-	r.Mux.HandleFunc(pat.Get("/task"), getTasksForUser)
 	r.Mux.HandleFunc(pat.Put("/task"), putTask)
+	r.Mux.HandleFunc(pat.Get("/task"), getTasksForUser)
+	//r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
+
+	//r.Mux.hanlerFunc(pat.Get("/action/:id"), getAction) // get action status if task gad action id
+	//r.Mux.hanlerFunc(pat.Put("/action/:id"), putAction) // put action status if task gad action id
+	//r.Mux.hanlerFunc(pat.Post("/action/:id"), postAction) // post action status if task gad action id
 
 	useTokenAuth = false
 	for _, plugin := range strings.Split(r.plugins, ",") {

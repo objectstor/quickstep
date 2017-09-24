@@ -125,6 +125,9 @@ func (s *QSession) InsertTask(task *Task) (string, error) {
 		if len(task.Name) == 0 {
 			return "", errors.New("name empty")
 		}
+		if task.ItemType < TaskItem || task.ItemType >= LastItem { // JobItem is last item
+			return "", errors.New("ItemType is missing")
+		}
 		c := s.mgoSession.DB("store").C("tasks")
 		if !task.ID.Valid() {
 			task.ID = bson.NewObjectId()

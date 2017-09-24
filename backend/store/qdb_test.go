@@ -124,6 +124,7 @@ func TestCreateTask(t *testing.T) {
 	_, err = session.InsertTask(task)
 	assert.Error(t, err)
 	task.Name = "new_task"
+    task.ItemType = TaskItem
 	taskID, err := session.InsertTask(task)
 	assert.Nil(t, err)
 	assert.True(t, bson.IsObjectIdHex(taskID))
@@ -157,6 +158,7 @@ func TestCreateUserTask(t *testing.T) {
 	task := new(Task)
 	task.Private = false
 	task.Status = "NEW"
+    task.ItemType = TaskItem
 	myTime := time.Now()
 	task.CreationTime = myTime
 	task.ModificationTime = myTime
@@ -168,6 +170,7 @@ func TestCreateUserTask(t *testing.T) {
 
 	ntask := new(Task)
 	ntask = task
+    ntask.ItemType = TaskItem
 	ntask.Name = "C_new_name"
 	ntask.ID = ""
 	ntaskID, err := session.InsertTask(task)
