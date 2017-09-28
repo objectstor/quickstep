@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"quickstep/backend/stats"
 	"quickstep/backend/store"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ type tokenAuth struct {
 	key     []byte
 	owner   string
 	session *qdb.QSession
+	stats   *qstats.QStat
 }
 
 func (t tokenAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -39,6 +41,7 @@ func (t tokenAuth) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			ctx = context.WithValue(ctx, "user", user)
 		}
 		ctx = context.WithValue(ctx, "user_id", userID)
+		ctx = context.WithValue(ctx, "stats", t.stats)
 		t.h.ServeHTTP(w, r.WithContext(ctx))
 	} else {
 		t.h.ServeHTTP(w, r)
@@ -72,7 +75,7 @@ func (t *tokenAuth) authenticate(r *http.Request) (string, string, bool) {
 }
 
 // TokenAuth -  token authentication
-func TokenAuth(session *qdb.QSession) func(http.Handler) http.Handler {
+func TokenAuth(session *qdb.QSession, stats *qstats.QStat) func(http.Handler) http.Handler {
 	fn := func(h http.Handler) http.Handler {
 		var skey []byte
 		if session == nil {
@@ -80,7 +83,7 @@ func TokenAuth(session *qdb.QSession) func(http.Handler) http.Handler {
 		} else {
 			skey = session.SigningKey
 		}
-		return tokenAuth{h, skey, "", session}
+		return tokenAuth{h, skey, "", session, stats}
 	}
 	return fn
 }

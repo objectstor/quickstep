@@ -11,8 +11,11 @@ import (
 	"net/http"
 	"os"
 	"quickstep/backend/rest"
+	"quickstep/backend/stats"
 	"quickstep/backend/store"
+	"sync"
 
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gopkg.in/mgo.v2/bson"
 	yaml "gopkg.in/yaml.v2"
 )
@@ -103,6 +106,30 @@ func main() {
 	if err != nil {
 		log.Fatal("Router create failed : ", err)
 	}
+	// stats section
+	err = router.Stats.AddCounter(qstats.TASK_PUT_COUNT, "task_put_requests", "number of task puts")
+	if err != nil {
+		log.Fatal("Stats create failed : ", err)
+	}
+	err = router.Stats.AddCounter(qstats.TASK_GET_COUNT, "task_get_requests", "number of task gets")
+	if err != nil {
+		log.Fatal("Stats create failed : ", err)
+	}
+	err = router.Stats.AddCounter(qstats.TOTAL_PUT_COUNT, "total_put_requests", "number of total puts")
+	if err != nil {
+		log.Fatal("Stats create failed : ", err)
+	}
+	err = router.Stats.AddCounter(qstats.TOTAL_GET_COUNT, "total_get_requests", "number of total gets")
+	if err != nil {
+		log.Fatal("Stats create failed : ", err)
+	}
+
+	statsCounter, err := router.Stats.Register()
+	if err != nil {
+		log.Fatal("Stats create failed : ", err)
+	}
+	log.Printf("%d stats metrics registered", statsCounter)
+
 	if len(config.RestPlugins) > 0 {
 		err = router.EnablePlugins(config.RestPlugins)
 		if err != nil {
@@ -113,9 +140,22 @@ func main() {
 	if err != nil {
 		log.Fatal("Router init failed : ", err)
 	}
-	err = http.ListenAndServe("localhost:8000", router.Mux)
-	if err != nil {
-		log.Fatal("Router failed to start : ", err)
-	}
+
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		err = http.ListenAndServe(":8000", router.Mux)
+		if err != nil {
+			log.Fatal("Router failed to start : ", err)
+		}
+		wg.Done()
+	}()
+	wg.Add(1)
+	go func() {
+		http.Handle("/metrics", promhttp.Handler())
+		log.Fatal(http.ListenAndServe(":8123", nil))
+		wg.Done()
+	}()
+	wg.Wait()
 	defer router.Stop()
 }

@@ -3,6 +3,7 @@ package qrouter
 /* REST server*/
 
 import (
+	"quickstep/backend/stats"
 	"quickstep/backend/store"
 	"strings"
 
@@ -16,6 +17,7 @@ import (
 type RServer struct {
 	url     string
 	s       *qdb.QSession
+	Stats   *qstats.QStat
 	Mux     *goji.Mux
 	plugins string
 }
@@ -25,6 +27,7 @@ func New(url string, s *qdb.QSession) (*RServer, error) {
 	r := new(RServer)
 	r.url = url
 	r.s = s
+	r.Stats = qstats.New()
 	return r, nil
 }
 
@@ -61,7 +64,7 @@ func (r *RServer) EnableRest() error {
 		}
 	}
 	if !useTokenAuth {
-		r.Mux.Use(TokenAuth(r.s)) //!untested
+		r.Mux.Use(TokenAuth(r.s, r.Stats)) // always run tokenAuth
 	}
 	return nil
 }

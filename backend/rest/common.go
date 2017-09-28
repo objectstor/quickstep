@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"quickstep/backend/stats"
 	"quickstep/backend/store"
 	"strings"
 	"time"
@@ -18,6 +19,7 @@ import (
 type Qcontext struct {
 	r         *http.Request
 	dbSession *qdb.QSession
+	Stats     *qstats.QStat
 	user      string
 	userID    string
 	u         string
@@ -34,6 +36,10 @@ func NewQContext(r *http.Request, validate bool) (*Qcontext, error) {
 	session := q.r.Context().Value("dbsession")
 	if session != nil {
 		q.dbSession = session.(*qdb.QSession)
+	}
+	status := q.r.Context().Value("stats")
+	if status != nil {
+		q.Stats = status.(*qstats.QStat)
 	}
 	arg := q.r.Context().Value("user")
 	if arg != nil {
@@ -82,6 +88,11 @@ func (q *Qcontext) UserID() string {
 //DBSession  - get database session
 func (q *Qcontext) DBSession() *qdb.QSession {
 	return q.dbSession
+}
+
+//Statistics  - get app Statistics
+func (q *Qcontext) Statistics() *qstats.QStat {
+	return q.Stats
 }
 
 //Org - get org

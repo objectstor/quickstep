@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"quickstep/backend/stats"
 	"quickstep/backend/store"
 
 	"gopkg.in/mgo.v2/bson"
@@ -22,6 +23,8 @@ func getTasksForUser(w http.ResponseWriter, r *http.Request) {
 		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	stats := ctx.Statistics()
+	stats.Inc(qstats.TASK_GET_COUNT)
 	session := ctx.DBSession()
 	defer session.Close()
 	// if header have data pick date if not pick all
@@ -73,6 +76,8 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	}
 	session := ctx.DBSession()
 	defer session.Close()
+	stats := ctx.Statistics()
+	stats.Inc(qstats.TASK_PUT_COUNT)
 	// must have header with oner ACL otherwise
 	// crud for current owner
 	aclString := r.Header.Get("X-Task-ACL")

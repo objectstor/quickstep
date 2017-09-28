@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"quickstep/backend/stats"
 	"quickstep/backend/store"
 )
 
@@ -27,6 +28,8 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	session := ctx.DBSession()
 	defer session.Close()
 
+	stats := ctx.Statistics()
+	stats.Inc(qstats.TOTAL_PUT_COUNT)
 	// let's decode body
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&qUser)
@@ -88,6 +91,8 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	}
 	session := ctx.DBSession()
 	defer session.Close()
+	stats := ctx.Statistics()
+	stats.Inc(qstats.TOTAL_GET_COUNT)
 	httpUser, err := GetParamFromRequest(r, "name", "/user")
 	if err != nil {
 		JSONError(w, "Context error ", http.StatusBadRequest)
