@@ -107,19 +107,24 @@ func main() {
 		log.Fatal("Router create failed : ", err)
 	}
 	// stats section
-	err = router.Stats.AddCounter(qstats.TASK_PUT_COUNT, "task_put_requests", "number of task puts")
+	err = router.Stats.AddCounter(qstats.TaskPutCount, "task_put_requests", "number of task puts")
 	if err != nil {
 		log.Fatal("Stats create failed : ", err)
 	}
-	err = router.Stats.AddCounter(qstats.TASK_GET_COUNT, "task_get_requests", "number of task gets")
+	err = router.Stats.AddCounter(qstats.TaskGetCount, "task_get_requests", "number of task gets")
 	if err != nil {
 		log.Fatal("Stats create failed : ", err)
 	}
-	err = router.Stats.AddCounter(qstats.TOTAL_PUT_COUNT, "total_put_requests", "number of total puts")
+	err = router.Stats.AddCounter(qstats.TaskPostCount, "task_post_requests", "number of task posts")
 	if err != nil {
 		log.Fatal("Stats create failed : ", err)
 	}
-	err = router.Stats.AddCounter(qstats.TOTAL_GET_COUNT, "total_get_requests", "number of total gets")
+
+	err = router.Stats.AddCounter(qstats.TotalPutCount, "total_put_requests", "number of total puts")
+	if err != nil {
+		log.Fatal("Stats create failed : ", err)
+	}
+	err = router.Stats.AddCounter(qstats.TotalGetCount, "total_get_requests", "number of total gets")
 	if err != nil {
 		log.Fatal("Stats create failed : ", err)
 	}

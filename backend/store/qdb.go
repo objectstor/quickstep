@@ -219,7 +219,6 @@ func (s *QSession) FindUserTasks(UserID string, TaskID string) ([]UserTask, erro
 			if !bson.IsObjectIdHex(TaskID) {
 				return results, errors.New("TaskId incorrect")
 			}
-
 			ut.TaskID = TaskID
 			err := c.Find(bson.M{"userid": UserID, "taskid": TaskID}).All(&results)
 			if err != nil {

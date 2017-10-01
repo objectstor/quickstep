@@ -50,7 +50,7 @@ func (r *RServer) EnableRest() error {
 	//r.Mux.Handle(pat.Get("/task/:id"), getTask)
 	r.Mux.HandleFunc(pat.Put("/task"), putTask)
 	r.Mux.HandleFunc(pat.Get("/task"), getTasksForUser)
-	//r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
+	r.Mux.HandleFunc(pat.Post("/task/:id"), postTask)
 
 	//r.Mux.hanlerFunc(pat.Get("/action/:id"), getAction) // get action status if task gad action id
 	//r.Mux.hanlerFunc(pat.Put("/action/:id"), putAction) // put action status if task gad action id

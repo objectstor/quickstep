@@ -29,7 +29,7 @@ func createUser(w http.ResponseWriter, r *http.Request) {
 	defer session.Close()
 
 	stats := ctx.Statistics()
-	stats.Inc(qstats.TOTAL_PUT_COUNT)
+	stats.Inc(qstats.TotalPutCount)
 	// let's decode body
 	decoder := json.NewDecoder(r.Body)
 	err = decoder.Decode(&qUser)
@@ -92,7 +92,7 @@ func getUser(w http.ResponseWriter, r *http.Request) {
 	session := ctx.DBSession()
 	defer session.Close()
 	stats := ctx.Statistics()
-	stats.Inc(qstats.TOTAL_GET_COUNT)
+	stats.Inc(qstats.TotalGetCount)
 	httpUser, err := GetParamFromRequest(r, "name", "/user")
 	if err != nil {
 		JSONError(w, "Context error ", http.StatusBadRequest)

@@ -24,7 +24,7 @@ func getTasksForUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	stats := ctx.Statistics()
-	stats.Inc(qstats.TASK_GET_COUNT)
+	stats.Inc(qstats.TaskGetCount)
 	session := ctx.DBSession()
 	defer session.Close()
 	// if header have data pick date if not pick all
@@ -42,29 +42,56 @@ func getTasksForUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(buff)
 }
 
-/*
 func postTask(w http.ResponseWriter, r *http.Request) {
-	taskID := pat.Param(r, "id")
 	taskID, err := GetParamFromRequest(r, "id", "/task")
 	if err != nil {
 		JSONError(w, "Context error ", http.StatusBadRequest)
 		return
 	}
-
-	session := GetDbSessionFromContext(r)
-	contextUserString := GetUserFromContext(r)
-	if !ValidUserAndSession(session, contextUserString, w) {
-		return
-	}
-	contextUser, contextOrg, err := GetUserAndOrg(contextUserString)
+	ctx, err := NewQContext(r, true)
 	if err != nil {
-		JSONError(w, "Context error ", http.StatusBadRequest)
+		JSONError(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Fprintf(w, "%s %s %s", contextUser, contextOrg, taskID)
+	stats := ctx.Statistics()
+	stats.Inc(qstats.TaskPostCount)
+	session := ctx.DBSession()
+	defer session.Close()
+	// we need to check if ctx user can modify this Task
 
+	currentTaskTable, err := session.FindUserTasks(ctx.UserID(), taskID)
+	if err != nil {
+		JSONError(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if len(currentTaskTable) != 1 {
+		msg := fmt.Sprintf("Bad number of tasks %d (%s,%s)", len(currentTaskTable), ctx.User(), taskID)
+		JSONError(w, msg, http.StatusBadRequest)
+		return
+	}
+	// check ACl for task
+	//qdb.CheckACL(creator, acl.User, acl.Domain, "c")
+	if ctx.User() != currentTaskTable[0].ACL.User {
+		msg := fmt.Sprintf("Bad ACL for task %s", taskID)
+		JSONError(w, msg, http.StatusBadRequest)
+		return
+	}
+	if ctx.Org() != currentTaskTable[0].ACL.Domain {
+		msg := fmt.Sprintf("Bad ACL for task %s", taskID)
+		JSONError(w, msg, http.StatusBadRequest)
+		return
+	}
+	if !currentTaskTable[0].ACL.Update {
+		msg := fmt.Sprintf("Bad Access for task %s", taskID)
+		JSONError(w, msg, http.StatusBadRequest)
+		return
+	}
+
+	fmt.Println(currentTaskTable[0].ACL.Update)
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	fmt.Fprintf(w, "{\"taskid\": %q}", taskID)
 }
-*/
 
 func putTask(w http.ResponseWriter, r *http.Request) {
 	var task qdb.Task
@@ -77,7 +104,7 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 	session := ctx.DBSession()
 	defer session.Close()
 	stats := ctx.Statistics()
-	stats.Inc(qstats.TASK_PUT_COUNT)
+	stats.Inc(qstats.TaskPutCount)
 	// must have header with oner ACL otherwise
 	// crud for current owner
 	aclString := r.Header.Get("X-Task-ACL")
@@ -119,7 +146,6 @@ func putTask(w http.ResponseWriter, r *http.Request) {
 			JSONError(w, "bad access permissions", http.StatusBadRequest)
 			return
 		}
-
 		// we need to check if UserCTX have access to user acl
 		UserTaskID = nUser.ID.Hex()
 	} else {
